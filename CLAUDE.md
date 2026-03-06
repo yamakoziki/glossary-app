@@ -39,12 +39,23 @@ cat package.json
 
 3. **Output**: `docs/index.html` — a fully self-contained viewer with all glossary data embedded as JSON. No server required. Images live in `docs/images/`.
 
+### Excel Sheet Column Layout
+
+**用語マスタ** (col index): id(0), catCode(1), nameJa(2), readingJa(3), summaryJa(4), detailJa(5), nameFr(6), summaryFr(7), detailFr(8), nameEn(9), summaryEn(10), detailEn(11), image(12), captionJa(13), captionFr(14), captionEn(15), published(16)
+
+**分類マスタ**: code(0), nameJa(1), reading(2), nameFr(3), nameEn(4), order(5)
+
+**設定**: key(0), value(1) — `サイトタイトル` sets the viewer page title.
+
+`published` field: `1`, `true`, or `公開` = published; **empty string also defaults to published**.
+
 ### Key Implementation Notes
 
-- All logic is vanilla JS inside `admin/admin.html` (1600+ lines). There is no separate JS/CSS file.
-- Translation calls are made sequentially (one at a time) to the Anthropic API directly from the browser.
-- The generated `docs/index.html` also embeds the viewer UI inline — it is produced by `buildIndexHtml()` in admin.html (line ~1141).
-- SheetJS is loaded from `https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js` in admin.html. The `xlsx` npm package in `node_modules/` is not actually used at runtime.
+- All logic is vanilla JS inside `admin/admin.html` (~1467 lines). There is no separate JS/CSS file.
+- Translation uses `claude-sonnet-4-20250514` via `callAnthropicApi()` (line ~498). Calls are sequential with a 1-second delay between requests for rate limiting.
+- The generated `docs/index.html` embeds the viewer UI inline and all glossary data as JSON — produced by `buildIndexHtml()` (line ~939). Images are embedded as base64 `dataUrl` strings.
+- `termImages` is an in-memory object (`{termIdx: [{filename, dataUrl}]}`) populated during Step 2. Images are not persisted across page reloads.
+- SheetJS is loaded from `https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js` in admin.html. The `xlsx` npm package in `node_modules/` is not used at runtime.
 
 ### Deployment
 

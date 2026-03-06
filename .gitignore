@@ -1,2 +1,9 @@
 node_modules/
 package-lock.json
+
+# macOSシステムファイル
+.DS_Store
+**/.DS_Store
+
+# Claude Code設定ファイル
+.claude/settings.local.json

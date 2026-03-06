@@ -17,8 +17,11 @@
     }
     body { font-family: 'Hiragino Kaku Gothic ProN','Noto Sans JP','Meiryo',sans-serif; font-size: 16px; line-height: 1.6; color: var(--text); background: var(--bg); }
 
+    /* Sticky header wrapper */
+    .site-header { position: sticky; top: 0; z-index: 100; }
+
     /* Header */
-    header { background: var(--primary); color: white; padding: 16px 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    header { background: var(--primary); color: white; padding: 16px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
     .header-inner { max-width: 720px; margin: 0 auto; }
     header h1 { font-size: 1.25rem; font-weight: 700; }
     .lang-bar { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
@@ -26,19 +29,22 @@
     .lang-btn.active { background: white; color: var(--primary); border-color: white; }
     .lang-btn:hover:not(.active) { background: rgba(255,255,255,0.15); }
 
+    /* Controls bar */
+    .controls-bar { background: white; border-bottom: 1px solid var(--border); padding: 8px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .controls-inner { max-width: 720px; margin: 0 auto; display: flex; gap: 8px; align-items: center; }
+    .filter-group { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    .filter-all-btn { padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border); background: white; font-size: 0.9rem; cursor: pointer; min-height: 44px; white-space: nowrap; font-weight: 600; transition: all 0.15s; }
+    .filter-all-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .filter-all-btn:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+    #categorySelect { display: inline-block; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: white; font-size: 0.9rem; cursor: pointer; min-height: 44px; min-width: 120px; color: var(--text); }
+    #categorySelect:focus { outline: 2px solid var(--primary); outline-offset: 0; }
+    .search-box { position: relative; flex: 1; min-width: 0; }
+    .search-box input { width: 100%; padding: 10px 16px 10px 40px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; outline: none; transition: border-color 0.2s; min-height: 44px; background: white; }
+    .search-box input:focus { border-color: var(--primary); }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 1rem; pointer-events: none; }
+
     /* Main */
     main { max-width: 720px; margin: 0 auto; padding: 20px 16px 80px; }
-
-    /* Controls */
-    .controls { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
-    .search-box { position: relative; }
-    .search-box input { width: 100%; padding: 12px 16px 12px 46px; border: 2px solid var(--border); border-radius: var(--radius); font-size: 1rem; outline: none; transition: border-color 0.2s; min-height: 44px; background: white; }
-    .search-box input:focus { border-color: var(--primary); }
-    .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 1.1rem; pointer-events: none; }
-    .filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
-    .filter-btn { padding: 8px 18px; border-radius: 999px; border: 2px solid var(--border); background: white; font-size: 0.9rem; cursor: pointer; min-height: 44px; transition: all 0.2s; font-weight: 500; white-space: nowrap; }
-    .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-    .filter-btn:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
 
     /* Result count */
     .result-count { font-size: 0.85rem; color: var(--muted); margin-bottom: 10px; }
@@ -129,49 +135,64 @@
 </head>
 <body>
 
-<header>
-  <div class="header-inner">
-    <h1>用語集</h1>
-    <div class="lang-bar">
-      <button class="lang-btn active" onclick="setLang('ja', this)">日本語</button>
-      <button class="lang-btn" onclick="setLang('fr', this)">Français</button>
-      <button class="lang-btn" onclick="setLang('en', this)">English</button>
+<div class="site-header">
+  <header>
+    <div class="header-inner">
+      <h1>用語集</h1>
+      <div class="lang-bar">
+        <button class="lang-btn active" onclick="setLang('ja', this)"><span class="full-text">日本語</span><span class="short-text">日</span></button>
+        <button class="lang-btn" onclick="setLang('fr', this)"><span class="full-text">Français</span><span class="short-text">FR</span></button>
+        <button class="lang-btn" onclick="setLang('en', this)"><span class="full-text">English</span><span class="short-text">EN</span></button>
+      </div>
+    </div>
+  </header>
+  <div class="controls-bar">
+    <div class="controls-inner">
+      <div class="filter-group">
+        <button class="filter-all-btn active" id="btn-all" onclick="setCat('all')">All</button>
+        <select id="categorySelect" onchange="setCatFromSelect(this)">
+          <option value="">分野を選ぶ</option>
+        </select>
+      </div>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="search" id="search-input" placeholder="キーワードで検索..." oninput="renderTerms()" autocomplete="off">
+      </div>
     </div>
   </div>
-</header>
+</div>
 
 <main>
-  <div class="controls">
-    <div class="search-box">
-      <span class="search-icon">🔍</span>
-      <input type="search" id="search-input" placeholder="キーワードで検索..." oninput="renderTerms()" autocomplete="off">
-    </div>
-    <div class="filter-row" id="cat-filter"></div>
-  </div>
   <div class="result-count" id="result-count"></div>
   <div id="term-list-wrap"></div>
 </main>
 
 <script>
-const TERMS = [{"rowNum":2,"id":"001","catCode":"CAT01","nameJa":"アプリケーション","readingJa":"あぷりけーしょん","summaryJa":"コンピュータ上で動作する特定の目的のためのソフトウェアプログラム。","detailJa":"スマートフォンやパソコンで使用できるソフトウェアの総称。業務用・娯楽用など様々な種類がある。","nameFr":"Application","summaryFr":"Programme logiciel à usage spécifique.","detailFr":"Terme générique désignant les logiciels utilisables sur smartphones et ordinateurs. Il en existe différents types, notamment à usage professionnel et de divertissement.","nameEn":"Application","summaryEn":"Software program for a specific purpose.","detailEn":"A general term for software that can be used on smartphones and computers. There are various types including business and entertainment applications.","image":"","captionJa":"","captionFr":"","captionEn":"","published":"1","images":[{"filename":"001_1.png","dataUrl":"data:image/png;base64,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"},{"filename":"001_2.png","dataUrl":"data:image/png;base64,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"}]},{"rowNum":3,"id":"002","catCode":"CAT01","nameJa":"インターフェース","readingJa":"いんたーふぇーす","summaryJa":"ユーザーとシステムが情報をやり取りするための接点・画面。","detailJa":"使いやすいインターフェースはシステムの使いやすさを大きく左右する。視覚的デザインと操作性が重要。","nameFr":"Interface","summaryFr":"Point de contact entre utilisateur et système.","detailFr":"Une interface conviviale influence grandement la facilité d'utilisation du système. Le design visuel et l'ergonomie sont importants.","nameEn":"Interface","summaryEn":"Point of contact between user and system.","detailEn":"A user-friendly interface significantly affects the usability of a system. Visual design and operability are important.","image":"","captionJa":"","captionFr":"","captionEn":"","published":"1","images":[]},{"rowNum":4,"id":"003","catCode":"CAT02","nameJa":"データベース","readingJa":"でーたべーす","summaryJa":"大量のデータを整理して保存・検索できるようにした仕組み。","detailJa":"表形式や階層形式など様々な構造でデータを管理する。SQLが代表的な操作言語。","nameFr":"Base de données","summaryFr":"Système organisé de stockage et recherche de données.","detailFr":"Gérer les données dans diverses structures telles que les formats tabulaires ou hiérarchiques. SQL est le langage de manipulation représentatif.","nameEn":"Database","summaryEn":"Organized system for storing and retrieving data.","detailEn":"Manages data in various structures such as tabular format and hierarchical format. SQL is the representative operation language.","image":"","captionJa":"","captionFr":"","captionEn":"","published":"1","images":[]},{"rowNum":5,"id":"004","catCode":"CAT02","nameJa":"プロトコル","readingJa":"ぷろとこる","summaryJa":"コンピュータ同士が通信するための取り決め・手順。","detailJa":"インターネットではHTTPやTCPなどのプロトコルが使用される。通信の信頼性を保証する。","nameFr":"Protocole","summaryFr":"Ensemble de règles pour la communication informatique.","detailFr":"Sur Internet, des protocoles tels que HTTP et TCP sont utilisés. Ils garantissent la fiabilité des communications.","nameEn":"Protocol","summaryEn":"Set of rules for computer communication.","detailEn":"The Internet uses protocols such as HTTP and TCP. They guarantee the reliability of communication.","image":"","captionJa":"","captionFr":"","captionEn":"","published":"1","images":[]},{"rowNum":6,"id":"005","catCode":"CAT03","nameJa":"バックアップ","readingJa":"ばっくあっぷ","summaryJa":"データの消失に備えて、複製を別の場所に保存しておくこと。","detailJa":"定期的なバックアップはデータ管理の基本。クラウドや外部ストレージへの保存が推奨される。","nameFr":"Sauvegarde","summaryFr":"Copie de données pour prévenir leur perte.","detailFr":"Les sauvegardes régulières constituent la base de la gestion des données. Le stockage sur le cloud ou sur des supports de stockage externes est recommandé.","nameEn":"Backup","summaryEn":"Copy of data stored to prevent loss.","detailEn":"Regular backups are fundamental to data management. Storage in the cloud or external storage devices is recommended.","image":"","captionJa":"","captionFr":"","captionEn":"","published":"1","images":[]}];
+const TERMS = [{"rowNum":2,"id":"001","catCode":"CAT01","nameJa":"アプリケーション","readingJa":"あぷりけーしょん","summaryJa":"コンピュータ上で動作する特定の目的のためのソフトウェアプログラム。","detailJa":"スマートフォンやパソコンで使用できるソフトウェアの総称。業務用・娯楽用など様々な種類がある。","nameFr":"Application","summaryFr":"Programme logiciel à usage spécifique.","detailFr":"Terme générique désignant les logiciels utilisables sur smartphones et ordinateurs. Il en existe différents types, notamment pour usage professionnel et de divertissement.","nameEn":"Application","summaryEn":"Software program for a specific purpose.","detailEn":"A general term for software that can be used on smartphones and computers. There are various types including business and entertainment applications.","image":"001_1.png,001_2.png","captionJa":"","captionFr":"","captionEn":"","published":"1","images":[{"filename":"001_1.png","dataUrl":"data:image/png;base64,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"},{"filename":"001_2.png","dataUrl":"data:image/png;base64,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"}]},{"rowNum":3,"id":"002","catCode":"CAT01","nameJa":"インターフェース","readingJa":"いんたーふぇーす","summaryJa":"ユーザーとシステムが情報をやり取りするための接点・画面。","detailJa":"使いやすいインターフェースはシステムの使いやすさを大きく左右する。視覚的デザインと操作性が重要。","nameFr":"Interface","summaryFr":"Point de contact entre utilisateur et système.","detailFr":"Une interface facile à utiliser influence grandement la facilité d'utilisation du système. Le design visuel et l'ergonomie sont importants.","nameEn":"Interface","summaryEn":"Point of contact between user and system.","detailEn":"A user-friendly interface significantly affects the usability of a system. Visual design and operability are important.","image":"","captionJa":"","captionFr":"","captionEn":"","published":"1","images":[]},{"rowNum":4,"id":"003","catCode":"CAT02","nameJa":"データベース","readingJa":"でーたべーす","summaryJa":"大量のデータを整理して保存・検索できるようにした仕組み。","detailJa":"表形式や階層形式など様々な構造でデータを管理する。SQLが代表的な操作言語。","nameFr":"Base de données","summaryFr":"Système organisé de stockage et recherche de données.","detailFr":"Gérer les données dans diverses structures telles que les formats tabulaires ou hiérarchiques. SQL est le langage de manipulation représentatif.","nameEn":"Database","summaryEn":"Organized system for storing and retrieving data.","detailEn":"Manages data in various structures such as tabular and hierarchical formats. SQL is a representative query language.","image":"","captionJa":"","captionFr":"","captionEn":"","published":"1","images":[]},{"rowNum":5,"id":"004","catCode":"CAT02","nameJa":"プロトコル","readingJa":"ぷろとこる","summaryJa":"コンピュータ同士が通信するための取り決め・手順。","detailJa":"インターネットではHTTPやTCPなどのプロトコルが使用される。通信の信頼性を保証する。","nameFr":"Protocole","summaryFr":"Ensemble de règles pour la communication informatique.","detailFr":"Sur Internet, des protocoles tels que HTTP et TCP sont utilisés. Ils garantissent la fiabilité des communications.","nameEn":"Protocol","summaryEn":"Set of rules for computer communication.","detailEn":"On the Internet, protocols such as HTTP and TCP are used. They guarantee the reliability of communication.","image":"","captionJa":"","captionFr":"","captionEn":"","published":"1","images":[]},{"rowNum":6,"id":"005","catCode":"CAT03","nameJa":"バックアップ","readingJa":"ばっくあっぷ","summaryJa":"データの消失に備えて、複製を別の場所に保存しておくこと。","detailJa":"定期的なバックアップはデータ管理の基本。クラウドや外部ストレージへの保存が推奨される。","nameFr":"Sauvegarde","summaryFr":"Copie de données pour prévenir leur perte.","detailFr":"Les sauvegardes régulières constituent la base de la gestion des données. Le stockage dans le cloud ou sur des supports de stockage externes est recommandé.","nameEn":"Backup","summaryEn":"Copy of data stored to prevent loss.","detailEn":"Regular backups are fundamental to data management. Storage to cloud or external storage devices is recommended.","image":"","captionJa":"","captionFr":"","captionEn":"","published":"1","images":[]}];
 const CATEGORIES = [{"rowNum":2,"code":"CAT01","nameJa":"基本用語","reading":"きほんようご","nameFr":"Termes de base","nameEn":"Basic Terms","order":1},{"rowNum":3,"code":"CAT02","nameJa":"技術用語","reading":"ぎじゅつようご","nameFr":"Termes techniques","nameEn":"Technical Terms","order":2},{"rowNum":4,"code":"CAT03","nameJa":"管理用語","reading":"かんりようご","nameFr":"Termes de gestion","nameEn":"Management Terms","order":3}];
 const CAT_MAP = {};
 CATEGORIES.forEach(c => { CAT_MAP[c.code] = c; });
 
 let currentLang = 'ja';
 let currentCat = 'all';
-// openTermId tracks which term's summary is open (by TERMS index in filtered list)
-let openSummaryId = null; // item element id string
-let openDetailId = null;  // item element id string
+let openTermId = null;      // t.id of the currently open term (persists across renders)
+let openDetailOpen = false; // whether detail panel is also open (persists across renders)
+let _termIdByItemId = {};   // itemId → t.id, rebuilt each renderTerms
 
 function setLang(lang, btn) {
+  // Case 3: Same language clicked while something is open → close and reset to list
+  if (lang === currentLang && openTermId !== null) {
+    openTermId = null;
+    openDetailOpen = false;
+    renderCatFilter();
+    renderTerms();
+    return;
+  }
   currentLang = lang;
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   const si = document.getElementById('search-input');
   si.placeholder = lang === 'ja' ? 'キーワードで検索...' : (lang === 'fr' ? 'Rechercher...' : 'Search...');
-  openSummaryId = null;
-  openDetailId = null;
   renderCatFilter();
   renderTerms();
 }
@@ -214,21 +235,30 @@ function sortTerms(arr) {
 }
 
 function renderCatFilter() {
-  const row = document.getElementById('cat-filter');
-  const allLabel = currentLang === 'ja' ? 'すべて' : (currentLang === 'fr' ? 'Tous' : 'All');
-  let html = `<button class="filter-btn ${currentCat === 'all' ? 'active' : ''}" onclick="setCat('all')">${allLabel}</button>`;
-  CATEGORIES.forEach(c => {
-    html += `<button class="filter-btn ${currentCat === c.code ? 'active' : ''}" onclick="setCat('${esc2(c.code)}')">${esc2(catName(c))}</button>`;
-  });
-  row.innerHTML = html;
+  const btnAll = document.getElementById('btn-all');
+  if (btnAll) btnAll.classList.toggle('active', currentCat === 'all');
+  const sel = document.getElementById('categorySelect');
+  if (sel) {
+    const placeholder = currentLang === 'ja' ? '分野を選ぶ' : (currentLang === 'fr' ? 'Choisir le domaine' : 'Choose category');
+    let html = '<option value="">' + placeholder + '</option>';
+    CATEGORIES.forEach(function(c) {
+      html += '<option value="' + esc2(c.code) + '"' + (currentCat === c.code ? ' selected' : '') + '>' + esc2(catName(c)) + '</option>';
+    });
+    sel.innerHTML = html;
+    console.log('ドロップダウン選択肢数:', sel.options.length);
+  }
 }
 
 function setCat(code) {
   currentCat = code;
-  openSummaryId = null;
-  openDetailId = null;
+  openTermId = null;
+  openDetailOpen = false;
   renderCatFilter();
   renderTerms();
+}
+
+function setCatFromSelect(sel) {
+  setCat(sel.value || 'all');
 }
 
 function renderTerms() {
@@ -253,8 +283,10 @@ function renderTerms() {
   const detailLabel = currentLang === 'ja' ? '詳細を見る' : (currentLang === 'fr' ? 'Voir le détail' : 'Show details');
   const detailCloseLabel = currentLang === 'ja' ? '閉じる' : (currentLang === 'fr' ? 'Fermer' : 'Close');
 
+  _termIdByItemId = {};
   const items = sorted.map((t, i) => {
     const itemId = 'item-' + i;
+    _termIdByItemId[itemId] = t.id;
     const name = esc2(termName(t));
     const reading = (currentLang === 'ja' && t.readingJa) ? `<span class="term-reading">（${esc2(t.readingJa)}）</span>` : '';
     const summary = esc2(termSummary(t));
@@ -305,39 +337,73 @@ function renderTerms() {
   });
 
   wrap.innerHTML = `<div class="term-list">${items.join('')}</div>`;
+
+  // Restore open state after re-render (e.g. after language switch)
+  if (openTermId !== null) {
+    const restoredItemId = Object.keys(_termIdByItemId).find(k => _termIdByItemId[k] === openTermId);
+    if (restoredItemId) {
+      _applyOpenState(restoredItemId);
+    } else {
+      openTermId = null;
+      openDetailOpen = false;
+    }
+  }
+}
+
+function _applyOpenState(itemId) {
+  const toggleBtn = document.getElementById('toggle-' + itemId);
+  const summaryPanel = document.getElementById('summary-' + itemId);
+  if (!toggleBtn || !summaryPanel) return;
+  toggleBtn.classList.add('open');
+  summaryPanel.classList.add('open');
+  if (openDetailOpen) {
+    const btn = document.getElementById('dtbtn-' + itemId);
+    const panel = document.getElementById('detail-' + itemId);
+    const labelEl = document.getElementById('dtlabel-' + itemId);
+    const closeLabel = currentLang === 'ja' ? '閉じる' : (currentLang === 'fr' ? 'Fermer' : 'Close');
+    if (btn && panel) {
+      btn.classList.add('open');
+      panel.classList.add('open');
+      if (labelEl) labelEl.textContent = closeLabel;
+    }
+  }
+  const el = document.getElementById(itemId);
+  if (el) el.scrollIntoView({ behavior: 'instant', block: 'center' });
 }
 
 function toggleSummary(itemId) {
   const toggleBtn = document.getElementById('toggle-' + itemId);
   const summaryPanel = document.getElementById('summary-' + itemId);
 
-  // Close previously open summary (and its detail) if different
-  if (openSummaryId && openSummaryId !== itemId) {
-    const prevToggle = document.getElementById('toggle-' + openSummaryId);
-    const prevPanel = document.getElementById('summary-' + openSummaryId);
-    if (prevToggle) prevToggle.classList.remove('open');
-    if (prevPanel) prevPanel.classList.remove('open');
-    // Close detail too
-    if (openDetailId) {
-      const prevDetailBtn = document.getElementById('dtbtn-' + openSummaryId);
-      const prevDetail = document.getElementById('detail-' + openSummaryId);
-      if (prevDetailBtn) { prevDetailBtn.classList.remove('open'); }
-      if (prevDetail) prevDetail.classList.remove('open');
-      openDetailId = null;
+  // Close previously open summary (and its detail) if a different term
+  if (openTermId !== null && _termIdByItemId[itemId] !== openTermId) {
+    const prevItemId = Object.keys(_termIdByItemId).find(k => _termIdByItemId[k] === openTermId);
+    if (prevItemId) {
+      const prevToggle = document.getElementById('toggle-' + prevItemId);
+      const prevPanel = document.getElementById('summary-' + prevItemId);
+      if (prevToggle) prevToggle.classList.remove('open');
+      if (prevPanel) prevPanel.classList.remove('open');
+      if (openDetailOpen) {
+        const prevDetailBtn = document.getElementById('dtbtn-' + prevItemId);
+        const prevDetail = document.getElementById('detail-' + prevItemId);
+        if (prevDetailBtn) prevDetailBtn.classList.remove('open');
+        if (prevDetail) prevDetail.classList.remove('open');
+      }
     }
+    openDetailOpen = false;
   }
 
   const isOpen = summaryPanel.classList.toggle('open');
   toggleBtn.classList.toggle('open', isOpen);
-  openSummaryId = isOpen ? itemId : null;
+  openTermId = isOpen ? _termIdByItemId[itemId] : null;
 
   // If closing summary, also close detail
-  if (!isOpen && openDetailId === itemId) {
+  if (!isOpen && openDetailOpen) {
     const detailBtn = document.getElementById('dtbtn-' + itemId);
     const detailPanel = document.getElementById('detail-' + itemId);
     if (detailBtn) detailBtn.classList.remove('open');
     if (detailPanel) detailPanel.classList.remove('open');
-    openDetailId = null;
+    openDetailOpen = false;
   }
 
   if (isOpen) {
@@ -355,7 +421,7 @@ function toggleDetail(itemId) {
   const isOpen = panel.classList.toggle('open');
   btn.classList.toggle('open', isOpen);
   if (labelEl) labelEl.textContent = isOpen ? detailCloseLabel : detailLabel;
-  openDetailId = isOpen ? itemId : null;
+  openDetailOpen = isOpen;
 }
 
 function esc2(s) {
@@ -364,6 +430,7 @@ function esc2(s) {
 }
 
 // Init
+console.log('分類データ:', CATEGORIES);
 renderCatFilter();
 renderTerms();
 </script>

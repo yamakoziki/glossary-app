@@ -701,7 +701,10 @@ function onApiKeyInput() {
   if (ba) ba.disabled = !has;
 }
 
-async function callAnthropicApi(prompt, apiKey) {
+// 1件ずつ翻訳するシンプルなAPI呼び出し
+async function callAnthropicApi(srcText, lang, apiKey) {
+  const langName = lang === 'fr' ? 'フランス語' : '英語';
+  const prompt = `以下の日本語テキストを${langName}に翻訳してください。専門用語は正確に翻訳し、翻訳結果のテキストのみ返答してください。\n\n${srcText}`;
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -712,128 +715,121 @@ async function callAnthropicApi(prompt, apiKey) {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
+      max_tokens: 1000,
       messages: [{ role: 'user', content: prompt }]
     })
   });
   if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
-    throw new Error(err.error?.message || `HTTP ${resp.status}`);
+    const errBody = await resp.json().catch(() => ({}));
+    const msg = (errBody.error && errBody.error.message) ? errBody.error.message : ('HTTPエラー ' + resp.status);
+    throw new Error(msg);
   }
   const data = await resp.json();
-  return data.content[0].text;
+  return data.content[0].text.trim();
 }
 
-async function translateBatch(batchItems, lang, apiKey) {
-  const langName = lang === 'fr' ? 'フランス語' : '英語';
-  const prompt = `以下のJSON配列内の日本語テキストを${langName}に翻訳してください。専門用語は正確に翻訳し、同じ構造のJSON配列のみ返答してください。\n\n${JSON.stringify(batchItems)}`;
-  const text = await callAnthropicApi(prompt, apiKey);
-  const match = text.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error('レスポンスのJSON解析に失敗しました');
-  return JSON.parse(match[0]);
+// 翻訳タスクリストを構築（mode: 'missing' | 'all'）
+function buildTranslationTasks(mode) {
+  const tasks = [];
+
+  // 分類マスタ
+  categories.forEach(function(c, idx) {
+    if (!c.nameJa) return;
+    if (mode === 'all' || !c.nameFr) tasks.push({ type: 'cat', idx: idx, field: 'nameFr', lang: 'fr', src: c.nameJa, label: '分類「' + c.nameJa + '」→仏' });
+    if (mode === 'all' || !c.nameEn) tasks.push({ type: 'cat', idx: idx, field: 'nameEn', lang: 'en', src: c.nameJa, label: '分類「' + c.nameJa + '」→英' });
+  });
+
+  // 用語マスタ
+  terms.forEach(function(t, idx) {
+    if (!t.nameJa) return;
+    var lbl = '「' + t.nameJa + '」';
+    // フランス語
+    if (mode === 'all' || !t.nameFr)    tasks.push({ type: 'term', idx: idx, field: 'nameFr',    lang: 'fr', src: t.nameJa,    label: lbl + ' 用語→仏' });
+    if (mode === 'all' || !t.summaryFr) tasks.push({ type: 'term', idx: idx, field: 'summaryFr', lang: 'fr', src: t.summaryJa, label: lbl + ' 概要→仏' });
+    if (t.detailJa  && (mode === 'all' || !t.detailFr))  tasks.push({ type: 'term', idx: idx, field: 'detailFr',  lang: 'fr', src: t.detailJa,  label: lbl + ' 詳細→仏' });
+    if (t.captionJa && (mode === 'all' || !t.captionFr)) tasks.push({ type: 'term', idx: idx, field: 'captionFr', lang: 'fr', src: t.captionJa, label: lbl + ' キャプ→仏' });
+    // 英語
+    if (mode === 'all' || !t.nameEn)    tasks.push({ type: 'term', idx: idx, field: 'nameEn',    lang: 'en', src: t.nameJa,    label: lbl + ' 用語→英' });
+    if (mode === 'all' || !t.summaryEn) tasks.push({ type: 'term', idx: idx, field: 'summaryEn', lang: 'en', src: t.summaryJa, label: lbl + ' 概要→英' });
+    if (t.detailJa  && (mode === 'all' || !t.detailEn))  tasks.push({ type: 'term', idx: idx, field: 'detailEn',  lang: 'en', src: t.detailJa,  label: lbl + ' 詳細→英' });
+    if (t.captionJa && (mode === 'all' || !t.captionEn)) tasks.push({ type: 'term', idx: idx, field: 'captionEn', lang: 'en', src: t.captionJa, label: lbl + ' キャプ→英' });
+  });
+
+  return tasks;
 }
 
 async function runTranslation(mode) {
   if (mode === 'all') {
     if (!confirm('既存の翻訳を全て上書きします。よろしいですか？')) return;
   }
-  const apiKey = document.getElementById('api-key-input').value.trim();
-  if (!apiKey) return;
+
+  var apiKeyEl = document.getElementById('api-key-input');
+  var apiKey = apiKeyEl ? apiKeyEl.value.trim() : '';
+  if (!apiKey) {
+    alert('APIキーを入力してください。');
+    return;
+  }
   saveApiKey(apiKey);
 
-  document.getElementById('btn-translate-missing').disabled = true;
-  document.getElementById('btn-translate-all').disabled = true;
-  document.getElementById('translate-progress').style.display = 'block';
-  document.getElementById('translate-result').innerHTML = '';
-
-  const BATCH_SIZE = 5;
-  const errorItems = [];
-
-  const termIdxs = terms.map((_, i) => i).filter(i => {
-    if (mode === 'all') return true;
-    const t = terms[i];
-    return !t.nameFr || !t.summaryFr || !t.nameEn || !t.summaryEn;
-  });
-
-  const catIdxs = categories.map((_, i) => i).filter(i => {
-    if (mode === 'all') return true;
-    return !categories[i].nameFr || !categories[i].nameEn;
-  });
-
-  const total = termIdxs.length + catIdxs.length;
-  let completed = 0;
-
-  function updateProgress(msg) {
-    const pct = total > 0 ? Math.round((completed / total) * 100) : 100;
-    document.getElementById('progress-bar').style.width = pct + '%';
-    document.getElementById('progress-label').textContent = msg || `翻訳中... ${completed}/${total}件`;
+  var tasks = buildTranslationTasks(mode);
+  if (tasks.length === 0) {
+    var resultEl = document.getElementById('translate-result');
+    if (resultEl) resultEl.innerHTML = '<div class="alert alert-success"><span class="alert-icon">✅</span><span>翻訳が必要な項目がありません。</span></div>';
+    return;
   }
-  updateProgress(`翻訳中... 0/${total}件`);
 
-  // Translate terms: FR then EN per batch for smoother progress
-  for (let i = 0; i < termIdxs.length; i += BATCH_SIZE) {
-    const batchIdxs = termIdxs.slice(i, i + BATCH_SIZE);
-    for (const lang of ['fr', 'en']) {
-      const sfx = lang === 'fr' ? 'Fr' : 'En';
-      const batchItems = batchIdxs.map((termIdx, bId) => {
-        const t = terms[termIdx];
-        const item = { id: bId, name: t.nameJa };
-        if (t.summaryJa) item.summary = t.summaryJa;
-        if (t.detailJa)  item.detail  = t.detailJa;
-        if (t.captionJa) item.caption = t.captionJa;
-        return item;
-      });
-      try {
-        const translated = await translateBatch(batchItems, lang, apiKey);
-        translated.forEach(item => {
-          const termIdx = batchIdxs[item.id];
-          if (termIdx == null) return;
-          const t = terms[termIdx];
-          if (mode === 'all' || !t['name'    + sfx]) t['name'    + sfx] = item.name    || '';
-          if (item.summary != null && (mode === 'all' || !t['summary' + sfx])) t['summary' + sfx] = item.summary;
-          if (item.detail  != null && (mode === 'all' || !t['detail'  + sfx])) t['detail'  + sfx] = item.detail;
-          if (item.caption != null && (mode === 'all' || !t['caption' + sfx])) t['caption' + sfx] = item.caption;
-        });
-      } catch (e) {
-        batchIdxs.forEach(idx => errorItems.push({ type: 'term', idx, lang }));
-        appendTranslateError(`用語バッチ(${lang.toUpperCase()})翻訳エラー: ${e.message}`);
+  // ボタン無効化・進捗表示
+  var btnMissing = document.getElementById('btn-translate-missing');
+  var btnAll = document.getElementById('btn-translate-all');
+  if (btnMissing) btnMissing.disabled = true;
+  if (btnAll) btnAll.disabled = true;
+
+  var progressDiv = document.getElementById('translate-progress');
+  if (progressDiv) progressDiv.style.display = 'block';
+  var resultDiv = document.getElementById('translate-result');
+  if (resultDiv) resultDiv.innerHTML = '';
+
+  var pbEl = document.getElementById('progress-bar');
+  var plEl = document.getElementById('progress-label');
+
+  function updateProgress(done, total, label) {
+    var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    if (pbEl) pbEl.style.width = pct + '%';
+    if (plEl) plEl.textContent = label || ('翻訳中... ' + done + '/' + total + '件');
+  }
+  updateProgress(0, tasks.length);
+
+  var taskErrors = []; // {task, message}
+
+  // 1件ずつ順番に翻訳
+  for (var i = 0; i < tasks.length; i++) {
+    var task = tasks[i];
+    updateProgress(i + 1, tasks.length, '翻訳中... ' + (i + 1) + '/' + tasks.length + '件 — ' + task.label);
+
+    if (!task.src || !task.src.trim()) continue; // ソーステキストが空ならスキップ
+
+    try {
+      var translated = await callAnthropicApi(task.src, task.lang, apiKey);
+      if (task.type === 'term') {
+        terms[task.idx][task.field] = translated;
+      } else {
+        categories[task.idx][task.field] = translated;
+      }
+    } catch (e) {
+      taskErrors.push({ task: task, message: e.message });
+      if (resultDiv) {
+        resultDiv.innerHTML += '<div class="alert alert-error" style="margin-bottom:8px;"><span class="alert-icon">❌</span><span>' + esc(task.label + ': ' + e.message) + '</span></div>';
       }
     }
-    completed += batchIdxs.length;
-    updateProgress(`翻訳中... ${completed}/${total}件`);
   }
 
-  // Translate categories
-  if (catIdxs.length > 0) {
-    for (const lang of ['fr', 'en']) {
-      const sfx = lang === 'fr' ? 'Fr' : 'En';
-      const batchItems = catIdxs.map((catIdx, bId) => ({ id: bId, name: categories[catIdx].nameJa }));
-      try {
-        const translated = await translateBatch(batchItems, lang, apiKey);
-        translated.forEach(item => {
-          const catIdx = catIdxs[item.id];
-          if (catIdx == null) return;
-          if (mode === 'all' || !categories[catIdx]['name' + sfx])
-            categories[catIdx]['name' + sfx] = item.name || '';
-        });
-      } catch (e) {
-        catIdxs.forEach(idx => errorItems.push({ type: 'cat', idx, lang }));
-        appendTranslateError(`分類マスタ(${lang.toUpperCase()})翻訳エラー: ${e.message}`);
-      }
-    }
-    completed += catIdxs.length;
-    updateProgress(`翻訳中... ${completed}/${total}件`);
-  }
+  // 完了
+  var doneLabel = taskErrors.length > 0 ? ('翻訳完了（エラー ' + taskErrors.length + ' 件）') : '翻訳完了 ✅';
+  updateProgress(tasks.length, tasks.length, doneLabel);
+  if (btnMissing) btnMissing.disabled = false;
+  if (btnAll) btnAll.disabled = false;
 
-  updateProgress('翻訳完了 ✅');
-  document.getElementById('btn-translate-missing').disabled = false;
-  document.getElementById('btn-translate-all').disabled = false;
-  renderTranslationTable(errorItems);
-}
-
-function appendTranslateError(msg) {
-  const el = document.getElementById('translate-result');
-  el.innerHTML += `<div class="alert alert-error" style="margin-bottom:8px;"><span class="alert-icon">❌</span><span>${esc(msg)}</span></div>`;
+  renderTranslationTable(taskErrors);
 }
 
 // ============================================================
@@ -929,7 +925,7 @@ function addDummyImages(termIdx) {
 }
 
 function renderTranslationTable(errorItems) {
-  const errorSet = new Set((errorItems || []).map(e => `${e.type}-${e.idx}-${e.lang}`));
+  const errorSet = new Set((errorItems || []).map(e => `${e.task.type}-${e.task.idx}-${e.task.lang}`));
   const result = document.getElementById('translate-result');
 
   const catRows = categories.map((c, i) => {

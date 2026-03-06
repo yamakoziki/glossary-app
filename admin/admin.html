@@ -7,347 +7,140 @@
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --color-primary: #1a56db;
-      --color-success: #057a55;
-      --color-error: #e02424;
-      --color-warning: #c27803;
-      --color-bg: #f3f4f6;
-      --color-card: #ffffff;
-      --color-border: #d1d5db;
-      --color-text: #111827;
-      --color-muted: #6b7280;
-      --radius: 8px;
-      --shadow: 0 1px 3px rgba(0,0,0,0.1);
+      --primary: #1a56db;
+      --bg: #f3f4f6;
+      --card: #fff;
+      --border: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --radius: 10px;
     }
+    body { font-family: 'Hiragino Kaku Gothic ProN','Noto Sans JP','Meiryo',sans-serif; font-size: 16px; line-height: 1.6; color: var(--text); background: var(--bg); }
 
-    body {
-      font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Meiryo', sans-serif;
-      font-size: 16px;
-      line-height: 1.6;
-      color: var(--color-text);
-      background: var(--color-bg);
-      min-height: 100vh;
-    }
+    /* Site header wrapper (sticky) */
+    .site-header { position: sticky; top: 0; z-index: 100; }
 
-    header {
-      background: var(--color-primary);
-      color: white;
-      padding: 20px 24px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-    header h1 { font-size: 1.4rem; font-weight: 700; }
-    header p { font-size: 0.9rem; opacity: 0.85; margin-top: 4px; }
+    /* Header row 1: title + lang buttons */
+    header { background: var(--primary); color: white; padding: 10px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .header-inner { max-width: 720px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    header h1 { font-size: 1.15rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lang-bar { display: flex; gap: 6px; flex-shrink: 0; }
+    .lang-btn { padding: 6px 12px; border-radius: 999px; border: 2px solid rgba(255,255,255,0.6); background: transparent; color: white; font-size: 0.82rem; font-weight: 600; cursor: pointer; min-height: 36px; line-height: 1; transition: background 0.2s; }
+    .lang-btn.active { background: white; color: var(--primary); border-color: white; }
+    .lang-btn:hover:not(.active) { background: rgba(255,255,255,0.15); }
+    .lang-btn .short-text { display: none; }
 
-    main { max-width: 900px; margin: 0 auto; padding: 24px 16px 80px; }
+    /* Controls bar row 2: filter + search (sticky) */
+    .controls-bar { background: white; border-bottom: 1px solid var(--border); padding: 8px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .controls-inner { max-width: 720px; margin: 0 auto; display: flex; gap: 8px; align-items: center; }
+    .filter-group { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    .filter-all-btn { padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border); background: white; font-size: 0.9rem; cursor: pointer; min-height: 38px; white-space: nowrap; font-weight: 600; transition: all 0.15s; }
+    .filter-all-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .filter-all-btn:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+    #cat-select { padding: 7px 8px; border: 1px solid var(--border); border-radius: 6px; background: white; font-size: 0.9rem; cursor: pointer; min-height: 38px; color: var(--text); max-width: 140px; }
+    #cat-select:focus { outline: 2px solid var(--primary); outline-offset: 0; }
+    .search-box { position: relative; flex: 1; min-width: 0; }
+    .search-box input { width: 100%; padding: 7px 12px 7px 34px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; outline: none; transition: border-color 0.2s; min-height: 38px; background: white; }
+    .search-box input:focus { border-color: var(--primary); }
+    .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 1rem; pointer-events: none; }
 
-    /* Step card */
-    .step-card {
-      background: var(--color-card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      margin-bottom: 20px;
-      overflow: hidden;
-      border: 1px solid var(--color-border);
-      transition: opacity 0.3s;
-    }
-    .step-card.locked {
-      opacity: 0.5;
-      pointer-events: none;
-    }
+    /* Main */
+    main { max-width: 720px; margin: 0 auto; padding: 16px 16px 80px; }
 
-    .step-header {
+    /* Result count */
+    .result-count { font-size: 0.85rem; color: var(--muted); margin-bottom: 10px; }
+
+    /* Term list */
+    .term-list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: white; }
+
+    /* Term item */
+    .term-item { border-bottom: 1px solid #eee; }
+    .term-item:last-child { border-bottom: none; }
+
+    /* Term name button */
+    .term-toggle {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--color-border);
+      justify-content: space-between;
+      width: 100%;
+      padding: 10px 16px;
+      background: none;
+      border: none;
       cursor: pointer;
-      user-select: none;
-    }
-    .step-number {
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      background: var(--color-primary);
-      color: white;
-      font-weight: 700;
-      font-size: 1rem;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      transition: background 0.2s;
-    }
-    .step-card.done .step-number {
-      background: var(--color-success);
-    }
-    .step-card.done .step-number::after {
-      content: '✓';
-    }
-    .step-card.done .step-number .num { display: none; }
-
-    .step-title { font-size: 1.05rem; font-weight: 600; flex: 1; }
-    .step-status { font-size: 0.85rem; color: var(--color-muted); }
-    .step-card.done .step-status { color: var(--color-success); font-weight: 600; }
-
-    .step-body { padding: 20px; }
-
-    /* Step 1 colors */
-    .step-card[data-step="1"] .step-header { background: #eff6ff; }
-    .step-card[data-step="2"] .step-header { background: #f0fdf4; }
-    .step-card[data-step="3"] .step-header { background: #fffbeb; }
-    .step-card[data-step="4"] .step-header { background: #fdf4ff; }
-    .step-card[data-step="5"] .step-header { background: #f0f9ff; }
-
-    /* File input */
-    .file-drop {
-      border: 2px dashed var(--color-border);
-      border-radius: var(--radius);
-      padding: 40px 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-    }
-    .file-drop:hover, .file-drop.drag-over {
-      border-color: var(--color-primary);
-      background: #eff6ff;
-    }
-    .file-drop input[type="file"] { display: none; }
-    .file-drop .icon { font-size: 2.5rem; margin-bottom: 12px; }
-    .file-drop p { color: var(--color-muted); font-size: 0.95rem; margin-top: 8px; }
-    #file-name { margin-top: 12px; font-weight: 600; color: var(--color-primary); min-height: 24px; }
-
-    /* Buttons */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px 24px;
-      border-radius: var(--radius);
+      text-align: left;
       font-size: 1rem;
       font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: opacity 0.2s, transform 0.1s;
+      color: var(--text);
       min-height: 44px;
-      text-decoration: none;
-    }
-    .btn:active { transform: scale(0.98); }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-    .btn-primary { background: var(--color-primary); color: white; }
-    .btn-primary:hover:not(:disabled) { background: #1740a8; }
-    .btn-success { background: var(--color-success); color: white; }
-    .btn-success:hover:not(:disabled) { background: #046240; }
-    .btn-outline { background: white; color: var(--color-primary); border: 2px solid var(--color-primary); }
-    .btn-outline:hover:not(:disabled) { background: #eff6ff; }
-    .btn-lg { padding: 14px 32px; font-size: 1.05rem; }
-    .mt-16 { margin-top: 16px; }
-
-    /* Stats grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
       gap: 12px;
-      margin-bottom: 20px;
+      transition: background 0.15s;
     }
-    .stat-card {
-      background: #f9fafb;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      padding: 16px;
-      text-align: center;
-    }
-    .stat-value { font-size: 2rem; font-weight: 700; color: var(--color-primary); line-height: 1; }
-    .stat-label { font-size: 0.85rem; color: var(--color-muted); margin-top: 6px; }
+    .term-toggle:hover { background: #f9fafb; }
+    .term-toggle.open { background: #eff6ff; color: var(--primary); }
+    .term-toggle-text { flex: 1; }
+    .term-reading { font-size: 0.8rem; font-weight: 400; color: var(--muted); margin-left: 6px; }
+    .term-arrow { font-size: 0.75rem; color: var(--muted); flex-shrink: 0; transition: transform 0.2s; }
+    .term-toggle.open .term-arrow { transform: rotate(180deg); color: var(--primary); }
 
-    /* Table */
-    .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--color-border); }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th { background: #f3f4f6; padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--color-border); font-weight: 600; white-space: nowrap; }
-    td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #f9fafb; }
+    /* Summary panel */
+    .term-summary-panel { display: none; padding: 0 16px 16px; border-top: 1px solid #dbeafe; background: #f8faff; }
+    .term-summary-panel.open { display: block; }
+    .term-summary-text { font-size: 0.97rem; line-height: 1.75; color: #374151; padding-top: 14px; }
 
-    /* Alert boxes */
-    .alert {
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      font-size: 0.95rem;
-    }
-    .alert-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
-    .alert-error { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
-    .alert-warning { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
-    .alert-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
-    .alert-info { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
-
-    /* Validation summary */
-    .validation-summary {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 20px;
-    }
-    .val-badge {
-      padding: 8px 16px;
+    /* Detail toggle button */
+    .detail-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 14px;
+      padding: 10px 18px;
+      border: 2px solid var(--primary);
       border-radius: 999px;
-      font-weight: 700;
-      font-size: 0.95rem;
-    }
-    .val-badge.errors { background: #fef2f2; color: #991b1b; border: 2px solid #fca5a5; }
-    .val-badge.warnings { background: #fffbeb; color: #92400e; border: 2px solid #fcd34d; }
-    .val-badge.ok { background: #f0fdf4; color: #166534; border: 2px solid #86efac; }
-
-    /* Preview iframe */
-    #preview-frame {
-      width: 100%;
-      height: 500px;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      margin-top: 16px;
       background: white;
+      color: var(--primary);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+      transition: background 0.15s;
     }
+    .detail-toggle:hover { background: #eff6ff; }
+    .detail-arrow { font-size: 0.7rem; transition: transform 0.2s; }
+    .detail-toggle.open .detail-arrow { transform: rotate(180deg); }
 
-    /* Step 5 guide */
-    .guide-step {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 24px;
-      align-items: flex-start;
-    }
-    .guide-num {
-      width: 32px; height: 32px;
-      border-radius: 50%;
-      background: #e0f2fe;
-      color: #0369a1;
-      font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      font-size: 0.9rem;
-    }
-    .guide-content h3 { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
-    .guide-content p, .guide-content li { font-size: 0.95rem; color: #374151; }
-    code {
-      background: #1f2937;
-      color: #f9fafb;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: 'Courier New', monospace;
-      font-size: 0.9em;
-    }
-    pre {
-      background: #1f2937;
-      color: #f9fafb;
-      padding: 16px;
-      border-radius: var(--radius);
-      font-family: 'Courier New', monospace;
-      font-size: 0.9rem;
-      overflow-x: auto;
-      margin-top: 8px;
-      line-height: 1.8;
-    }
-
-    /* Section label */
-    .section-label {
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--color-muted);
-      margin-bottom: 8px;
-      margin-top: 20px;
-    }
-    .section-label:first-child { margin-top: 0; }
+    /* Detail panel */
+    .term-detail-panel { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .term-detail-panel.open { display: block; }
+    .term-detail-text { font-size: 0.95rem; line-height: 1.8; color: #374151; white-space: pre-wrap; }
+    .term-detail-image { width: 100%; border-radius: 8px; margin-top: 16px; display: block; }
+    .term-detail-caption { font-size: 0.82rem; color: var(--muted); text-align: center; margin-top: 6px; }
 
     /* Empty state */
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--color-muted);
-    }
-    .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .empty { text-align: center; padding: 60px 20px; color: var(--muted); background: white; border: 1px solid var(--border); border-radius: var(--radius); }
+    .empty .icon { font-size: 2.5rem; margin-bottom: 12px; }
 
-    /* Progress bar */
-    .progress-steps {
-      display: flex;
-      align-items: center;
-      margin-bottom: 28px;
-      overflow-x: auto;
-      padding-bottom: 4px;
-    }
-    .progress-step {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      flex: 1;
-      min-width: 60px;
-      position: relative;
-    }
-    .progress-step:not(:last-child)::after {
-      content: '';
-      position: absolute;
-      top: 16px;
-      left: 50%;
-      width: 100%;
-      height: 2px;
-      background: var(--color-border);
-      z-index: 0;
-    }
-    .progress-step.done:not(:last-child)::after { background: var(--color-success); }
-    .ps-circle {
-      width: 32px; height: 32px;
-      border-radius: 50%;
-      background: var(--color-border);
-      color: white;
-      font-size: 0.85rem;
-      font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-      position: relative; z-index: 1;
-    }
-    .progress-step.done .ps-circle { background: var(--color-success); }
-    .progress-step.active .ps-circle { background: var(--color-primary); }
-    .ps-label { font-size: 0.7rem; margin-top: 6px; color: var(--color-muted); text-align: center; }
-    .progress-step.active .ps-label { color: var(--color-primary); font-weight: 600; }
-    .progress-step.done .ps-label { color: var(--color-success); }
+    /* Images in detail panel */
+    .term-images-section { margin-top: 16px; }
+    .term-images-title { font-size: 0.78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+    .term-image-item { margin-bottom: 16px; }
+    .term-image-item:last-child { margin-bottom: 0; }
 
-    .flex-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    /* Mobile: ≤375px — header wraps, short lang labels */
+    @media (max-width: 375px) {
+      .header-inner { flex-wrap: wrap; }
+      header h1 { font-size: 1rem; width: 100%; }
+      .lang-bar { width: 100%; margin-top: 2px; }
+      .lang-btn .full-text { display: none; }
+      .lang-btn .short-text { display: inline; }
+    }
 
     @media (max-width: 600px) {
-      header h1 { font-size: 1.2rem; }
-      main { padding: 16px 12px 60px; }
-      .step-body { padding: 16px; }
+      main { padding: 12px 12px 60px; }
+      .controls-bar { padding: 8px 12px; }
+      .term-toggle { padding: 10px 14px; }
+      .term-summary-panel { padding: 0 14px 14px; }
     }
-
-    /* Image management (admin) */
-    .img-thumb-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 20px; }
-    .img-thumb { position: relative; flex-shrink: 0; }
-    .img-thumb img { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid var(--color-border); display: block; }
-    .img-thumb-name { font-size: 0.68rem; color: var(--color-muted); text-align: center; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
-    .img-thumb-del { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #ef4444; color: white; border: none; cursor: pointer; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; }
-    .btn-sm { padding: 6px 12px !important; font-size: 0.85rem !important; min-height: 36px !important; }
-
-    /* Translation UI */
-    .translate-section { margin-top: 24px; padding-top: 20px; border-top: 2px dashed var(--color-border); }
-    .api-key-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .api-key-row label { font-weight: 600; font-size: 0.95rem; white-space: nowrap; }
-    .api-key-input { flex: 1; min-width: 200px; padding: 10px 14px; border: 2px solid var(--color-border); border-radius: var(--radius); font-size: 0.9rem; font-family: monospace; outline: none; transition: border-color 0.2s; }
-    .api-key-input:focus { border-color: var(--color-primary); }
-    .progress-wrap { background: #e5e7eb; border-radius: 999px; height: 10px; overflow: hidden; margin-top: 14px; margin-bottom: 6px; }
-    .progress-bar { height: 100%; background: var(--color-primary); border-radius: 999px; transition: width 0.4s; width: 0%; }
-    .progress-label { font-size: 0.9rem; color: var(--color-muted); }
-    .translate-table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--color-border); }
-    .translate-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    .translate-table th { background: #f3f4f6; padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--color-border); white-space: nowrap; font-weight: 600; }
-    .translate-table td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; vertical-align: top; max-width: 200px; overflow-wrap: break-word; }
-    .translate-table tr:last-child td { border-bottom: none; }
-    .translate-table td.cell-error { background: #fef2f2; }
-    .translate-table [contenteditable] { display: block; outline: none; min-height: 1.4em; border-radius: 4px; padding: 3px 5px; cursor: text; transition: background 0.15s; }
-    .translate-table [contenteditable]:hover { background: #f0f9ff; }
-    .translate-table [contenteditable]:focus { background: #dbeafe; outline: 2px solid var(--color-primary); outline-offset: 1px; }
-    .translate-table td.cell-error [contenteditable] { color: #991b1b; }
   </style>
 </head>
 <body>
@@ -721,8 +514,8 @@ async function callAnthropicApi(srcText, lang, apiKey) {
   });
   if (!resp.ok) {
     const errBody = await resp.json().catch(() => ({}));
-    const msg = (errBody.error && errBody.error.message) ? errBody.error.message : ('HTTPエラー ' + resp.status);
-    throw new Error(msg);
+    const detail = (errBody.error && errBody.error.message) ? errBody.error.message : JSON.stringify(errBody);
+    throw new Error('HTTP ' + resp.status + ' — ' + detail);
   }
   const data = await resp.json();
   return data.content[0].text.trim();
@@ -820,6 +613,11 @@ async function runTranslation(mode) {
       if (resultDiv) {
         resultDiv.innerHTML += '<div class="alert alert-error" style="margin-bottom:8px;"><span class="alert-icon">❌</span><span>' + esc(task.label + ': ' + e.message) + '</span></div>';
       }
+    }
+
+    // レート制限対策: リクエスト間に1秒待機
+    if (i < tasks.length - 1) {
+      await new Promise(r => setTimeout(r, 1000));
     }
   }
 
@@ -1287,25 +1085,34 @@ function buildIndexHtml() {
 </head>
 <body>
 
-<header>
-  <div class="header-inner">
-    <h1>${esc(siteTitle)}</h1>
-    <div class="lang-bar">
-      <button class="lang-btn active" onclick="setLang('ja', this)">日本語</button>
-      <button class="lang-btn" onclick="setLang('fr', this)">Français</button>
-      <button class="lang-btn" onclick="setLang('en', this)">English</button>
+<div class="site-header">
+  <header>
+    <div class="header-inner">
+      <h1>${esc(siteTitle)}</h1>
+      <div class="lang-bar">
+        <button class="lang-btn active" onclick="setLang('ja', this)"><span class="full-text">日本語</span><span class="short-text">日</span></button>
+        <button class="lang-btn" onclick="setLang('fr', this)"><span class="full-text">Français</span><span class="short-text">FR</span></button>
+        <button class="lang-btn" onclick="setLang('en', this)"><span class="full-text">English</span><span class="short-text">EN</span></button>
+      </div>
+    </div>
+  </header>
+  <div class="controls-bar">
+    <div class="controls-inner">
+      <div class="filter-group">
+        <button class="filter-all-btn active" id="btn-all" onclick="setCat('all')">All</button>
+        <select id="cat-select" onchange="setCatFromSelect(this)">
+          <option value="">分野 ▼</option>
+        </select>
+      </div>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="search" id="search-input" placeholder="キーワードで検索..." oninput="renderTerms()" autocomplete="off">
+      </div>
     </div>
   </div>
-</header>
+</div>
 
 <main>
-  <div class="controls">
-    <div class="search-box">
-      <span class="search-icon">🔍</span>
-      <input type="search" id="search-input" placeholder="キーワードで検索..." oninput="renderTerms()" autocomplete="off">
-    </div>
-    <div class="filter-row" id="cat-filter"></div>
-  </div>
   <div class="result-count" id="result-count"></div>
   <div id="term-list-wrap"></div>
 </main>
@@ -1318,18 +1125,24 @@ CATEGORIES.forEach(c => { CAT_MAP[c.code] = c; });
 
 let currentLang = 'ja';
 let currentCat = 'all';
-// openTermId tracks which term's summary is open (by TERMS index in filtered list)
-let openSummaryId = null; // item element id string
-let openDetailId = null;  // item element id string
+let openTermId = null;      // t.id of the currently open term (persists across renders)
+let openDetailOpen = false; // whether detail panel is also open (persists across renders)
+let _termIdByItemId = {};   // itemId → t.id, rebuilt each renderTerms
 
 function setLang(lang, btn) {
+  // Case 3: Same language clicked while something is open → close and reset to list
+  if (lang === currentLang && openTermId !== null) {
+    openTermId = null;
+    openDetailOpen = false;
+    renderCatFilter();
+    renderTerms();
+    return;
+  }
   currentLang = lang;
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   const si = document.getElementById('search-input');
   si.placeholder = lang === 'ja' ? 'キーワードで検索...' : (lang === 'fr' ? 'Rechercher...' : 'Search...');
-  openSummaryId = null;
-  openDetailId = null;
   renderCatFilter();
   renderTerms();
 }
@@ -1372,21 +1185,29 @@ function sortTerms(arr) {
 }
 
 function renderCatFilter() {
-  const row = document.getElementById('cat-filter');
-  const allLabel = currentLang === 'ja' ? 'すべて' : (currentLang === 'fr' ? 'Tous' : 'All');
-  let html = \`<button class="filter-btn \${currentCat === 'all' ? 'active' : ''}" onclick="setCat('all')">\${allLabel}</button>\`;
-  CATEGORIES.forEach(c => {
-    html += \`<button class="filter-btn \${currentCat === c.code ? 'active' : ''}" onclick="setCat('\${esc2(c.code)}')">\${esc2(catName(c))}</button>\`;
-  });
-  row.innerHTML = html;
+  const btnAll = document.getElementById('btn-all');
+  if (btnAll) btnAll.classList.toggle('active', currentCat === 'all');
+  const sel = document.getElementById('cat-select');
+  if (sel) {
+    const placeholder = currentLang === 'ja' ? '\u5206\u91ce \u25bc' : (currentLang === 'fr' ? 'Domaine \u25bc' : 'Category \u25bc');
+    let html = '<option value="">' + placeholder + '</option>';
+    CATEGORIES.forEach(function(c) {
+      html += '<option value="' + esc2(c.code) + '"' + (currentCat === c.code ? ' selected' : '') + '>' + esc2(catName(c)) + '</option>';
+    });
+    sel.innerHTML = html;
+  }
 }
 
 function setCat(code) {
   currentCat = code;
-  openSummaryId = null;
-  openDetailId = null;
+  openTermId = null;
+  openDetailOpen = false;
   renderCatFilter();
   renderTerms();
+}
+
+function setCatFromSelect(sel) {
+  setCat(sel.value || 'all');
 }
 
 function renderTerms() {
@@ -1411,8 +1232,10 @@ function renderTerms() {
   const detailLabel = currentLang === 'ja' ? '詳細を見る' : (currentLang === 'fr' ? 'Voir le détail' : 'Show details');
   const detailCloseLabel = currentLang === 'ja' ? '閉じる' : (currentLang === 'fr' ? 'Fermer' : 'Close');
 
+  _termIdByItemId = {};
   const items = sorted.map((t, i) => {
     const itemId = 'item-' + i;
+    _termIdByItemId[itemId] = t.id;
     const name = esc2(termName(t));
     const reading = (currentLang === 'ja' && t.readingJa) ? \`<span class="term-reading">（\${esc2(t.readingJa)}）</span>\` : '';
     const summary = esc2(termSummary(t));
@@ -1463,39 +1286,73 @@ function renderTerms() {
   });
 
   wrap.innerHTML = \`<div class="term-list">\${items.join('')}</div>\`;
+
+  // Restore open state after re-render (e.g. after language switch)
+  if (openTermId !== null) {
+    const restoredItemId = Object.keys(_termIdByItemId).find(k => _termIdByItemId[k] === openTermId);
+    if (restoredItemId) {
+      _applyOpenState(restoredItemId);
+    } else {
+      openTermId = null;
+      openDetailOpen = false;
+    }
+  }
+}
+
+function _applyOpenState(itemId) {
+  const toggleBtn = document.getElementById('toggle-' + itemId);
+  const summaryPanel = document.getElementById('summary-' + itemId);
+  if (!toggleBtn || !summaryPanel) return;
+  toggleBtn.classList.add('open');
+  summaryPanel.classList.add('open');
+  if (openDetailOpen) {
+    const btn = document.getElementById('dtbtn-' + itemId);
+    const panel = document.getElementById('detail-' + itemId);
+    const labelEl = document.getElementById('dtlabel-' + itemId);
+    const closeLabel = currentLang === 'ja' ? '\u9589\u3058\u308b' : (currentLang === 'fr' ? 'Fermer' : 'Close');
+    if (btn && panel) {
+      btn.classList.add('open');
+      panel.classList.add('open');
+      if (labelEl) labelEl.textContent = closeLabel;
+    }
+  }
+  const el = document.getElementById(itemId);
+  if (el) el.scrollIntoView({ behavior: 'instant', block: 'center' });
 }
 
 function toggleSummary(itemId) {
   const toggleBtn = document.getElementById('toggle-' + itemId);
   const summaryPanel = document.getElementById('summary-' + itemId);
 
-  // Close previously open summary (and its detail) if different
-  if (openSummaryId && openSummaryId !== itemId) {
-    const prevToggle = document.getElementById('toggle-' + openSummaryId);
-    const prevPanel = document.getElementById('summary-' + openSummaryId);
-    if (prevToggle) prevToggle.classList.remove('open');
-    if (prevPanel) prevPanel.classList.remove('open');
-    // Close detail too
-    if (openDetailId) {
-      const prevDetailBtn = document.getElementById('dtbtn-' + openSummaryId);
-      const prevDetail = document.getElementById('detail-' + openSummaryId);
-      if (prevDetailBtn) { prevDetailBtn.classList.remove('open'); }
-      if (prevDetail) prevDetail.classList.remove('open');
-      openDetailId = null;
+  // Close previously open summary (and its detail) if a different term
+  if (openTermId !== null && _termIdByItemId[itemId] !== openTermId) {
+    const prevItemId = Object.keys(_termIdByItemId).find(k => _termIdByItemId[k] === openTermId);
+    if (prevItemId) {
+      const prevToggle = document.getElementById('toggle-' + prevItemId);
+      const prevPanel = document.getElementById('summary-' + prevItemId);
+      if (prevToggle) prevToggle.classList.remove('open');
+      if (prevPanel) prevPanel.classList.remove('open');
+      if (openDetailOpen) {
+        const prevDetailBtn = document.getElementById('dtbtn-' + prevItemId);
+        const prevDetail = document.getElementById('detail-' + prevItemId);
+        if (prevDetailBtn) prevDetailBtn.classList.remove('open');
+        if (prevDetail) prevDetail.classList.remove('open');
+      }
     }
+    openDetailOpen = false;
   }
 
   const isOpen = summaryPanel.classList.toggle('open');
   toggleBtn.classList.toggle('open', isOpen);
-  openSummaryId = isOpen ? itemId : null;
+  openTermId = isOpen ? _termIdByItemId[itemId] : null;
 
   // If closing summary, also close detail
-  if (!isOpen && openDetailId === itemId) {
+  if (!isOpen && openDetailOpen) {
     const detailBtn = document.getElementById('dtbtn-' + itemId);
     const detailPanel = document.getElementById('detail-' + itemId);
     if (detailBtn) detailBtn.classList.remove('open');
     if (detailPanel) detailPanel.classList.remove('open');
-    openDetailId = null;
+    openDetailOpen = false;
   }
 
   if (isOpen) {
@@ -1513,7 +1370,7 @@ function toggleDetail(itemId) {
   const isOpen = panel.classList.toggle('open');
   btn.classList.toggle('open', isOpen);
   if (labelEl) labelEl.textContent = isOpen ? detailCloseLabel : detailLabel;
-  openDetailId = isOpen ? itemId : null;
+  openDetailOpen = isOpen;
 }
 
 function esc2(s) {

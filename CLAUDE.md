@@ -52,10 +52,11 @@ cat package.json
 ### Key Implementation Notes
 
 - All logic is vanilla JS inside `admin/admin.html` (~1474 lines). There is no separate JS/CSS file.
-- Translation uses `claude-sonnet-4-20250514` via `callAnthropicApi()` (line ~498). Calls are sequential with a 1-second delay between requests for rate limiting.
-- The generated `docs/index.html` embeds the viewer UI inline and all glossary data as JSON — produced by `buildIndexHtml()` (line ~939). Images are embedded as base64 `dataUrl` strings.
+- Translation uses `claude-sonnet-4-20250514` via `callAnthropicApi()` (line 549). Calls are sequential with a 1-second delay between requests for rate limiting.
+- The generated `docs/index.html` embeds the viewer UI inline and all glossary data as JSON — produced by `buildIndexHtml()` (line 992). Images are embedded as base64 `dataUrl` strings. Maximum 5 images per term.
 - `termImages` is an in-memory object (`{termIdx: [{filename, dataUrl}]}`) populated during Step 2. Images are not persisted across page reloads.
 - SheetJS is loaded from `https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js` in admin.html. The `xlsx` npm package in `node_modules/` is not used at runtime.
+- `images/` at the repo root is a backup of source images (not served); `docs/images/` contains the published copies.
 
 ### Deployment
 

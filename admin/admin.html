@@ -250,6 +250,30 @@
       <div class="empty-state"><div class="icon">🚀</div><div>ダウンロード後に手順が表示されます</div></div>
     </div>
   </div>
+
+  <!-- EXPORT: index.html → Excel -->
+  <div class="step-card" id="export-card" style="margin-top:24px;">
+    <div class="step-header">
+      <div class="step-number"><span class="num" style="font-size:1.1rem;">↩</span></div>
+      <div class="step-title">index.html → Excel 書き出し</div>
+      <div class="step-status" id="export-status"></div>
+    </div>
+    <div class="step-body">
+      <p style="margin-bottom:16px;color:var(--muted);font-size:0.95rem;">生成済みの <code>index.html</code> に埋め込まれた用語データを、元の Excel 形式（<code>glossary.xlsx</code>）で書き出します。</p>
+      <label class="file-drop" id="export-drop" for="export-file-input"
+        ondragover="handleExportDragOver(event)" ondragleave="handleExportDragLeave(event)" ondrop="handleExportDrop(event)">
+        <div class="icon">📄</div>
+        <div style="font-weight:600;font-size:1.05rem;">クリックまたはドラッグ&ドロップ</div>
+        <p>対応形式: index.html</p>
+        <input type="file" id="export-file-input" accept=".html" onchange="handleExportFileSelect(event)">
+      </label>
+      <div id="export-file-name"></div>
+      <div style="margin-top:16px;">
+        <button class="btn btn-primary btn-lg" id="btn-export" onclick="exportToExcel()" disabled>Excel としてダウンロード</button>
+      </div>
+      <div id="export-result" style="margin-top:12px;"></div>
+    </div>
+  </div>
 </main>
 
 <script>
@@ -1567,6 +1591,148 @@ git push origin main</pre>
     </div>
   `;
   markStepDone(5, '完了');
+}
+
+// ============================================================
+// EXPORT: index.html → Excel
+// ============================================================
+let exportFile = null;
+
+function handleExportDragOver(e) {
+  e.preventDefault();
+  document.getElementById('export-drop').classList.add('drag-over');
+}
+function handleExportDragLeave(e) {
+  document.getElementById('export-drop').classList.remove('drag-over');
+}
+function handleExportDrop(e) {
+  e.preventDefault();
+  document.getElementById('export-drop').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) setExportFile(file);
+}
+function handleExportFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) setExportFile(file);
+}
+function setExportFile(file) {
+  exportFile = file;
+  document.getElementById('export-file-name').textContent = '選択中: ' + file.name;
+  document.getElementById('btn-export').disabled = false;
+  document.getElementById('export-result').innerHTML = '';
+  document.getElementById('export-status').textContent = '';
+}
+
+// JSON 抽出: `const VARNAME = [...];` or `{...};` を括弧カウントで確実に切り出す
+function extractJsonFromHtml(text, varName) {
+  const prefix = 'const ' + varName + ' = ';
+  const idx = text.indexOf(prefix);
+  if (idx === -1) return null;
+  const start = idx + prefix.length;
+  const firstChar = text[start];
+  const closeChar = firstChar === '[' ? ']' : '}';
+  let depth = 0, inStr = false, escape = false;
+  for (let i = start; i < text.length; i++) {
+    const c = text[i];
+    if (escape) { escape = false; continue; }
+    if (c === '\\' && inStr) { escape = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (!inStr) {
+      if (c === firstChar) depth++;
+      else if (c === closeChar) { depth--; if (depth === 0) return text.slice(start, i + 1); }
+    }
+  }
+  return null;
+}
+
+async function exportToExcel() {
+  if (!exportFile) return;
+  const resultDiv = document.getElementById('export-result');
+  resultDiv.innerHTML = '<div class="alert alert-info"><span class="alert-icon">⏳</span><span>処理中...</span></div>';
+
+  try {
+    const text = await exportFile.text();
+
+    const termsJson = extractJsonFromHtml(text, 'TERMS');
+    const catsJson  = extractJsonFromHtml(text, 'CATEGORIES');
+    const titleMatch = text.match(/<title>(.*?)<\/title>/);
+
+    if (!termsJson) throw new Error('TERMS データが見つかりません。本ツールで生成された index.html を選択してください。');
+    if (!catsJson)  throw new Error('CATEGORIES データが見つかりません。');
+
+    const exportedTerms = JSON.parse(termsJson);
+    const exportedCats  = JSON.parse(catsJson);
+    const siteTitle     = titleMatch ? titleMatch[1].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"') : '用語集';
+
+    const wb = XLSX.utils.book_new();
+
+    // ── 用語マスタ ──────────────────────────────
+    const termHeaders = [
+      'ID', '分類コード', '用語(日本語)', '読み',
+      '概要(日本語)', '詳細(日本語)',
+      '用語(FRE)', '概要(FRE)', '詳細(FRE)',
+      '用語(英語)', '概要(英語)', '詳細(英語)',
+      '画像',
+      'キャプション(日本語)', 'キャプション(FRE)', 'キャプション(英語)',
+      '公開',
+      '用語(第3言語)', '概要(第3言語)', '詳細(第3言語)', 'キャプション(第3言語)'
+    ];
+    const termRows = [
+      termHeaders,
+      ...exportedTerms.map(t => [
+        t.id        ?? '',
+        t.catCode   ?? '',
+        t.nameJa    ?? '',
+        t.readingJa ?? '',
+        t.summaryJa ?? '',
+        t.detailJa  ?? '',
+        t.nameFr    ?? '',
+        t.summaryFr ?? '',
+        t.detailFr  ?? '',
+        t.nameEn    ?? '',
+        t.summaryEn ?? '',
+        t.detailEn  ?? '',
+        t.image     || (t.images && t.images[0] ? t.images[0].filename : ''),
+        t.captionJa ?? '',
+        t.captionFr ?? '',
+        t.captionEn ?? '',
+        t.published !== undefined ? t.published : '1',
+        t.name3     ?? '',
+        t.summary3  ?? '',
+        t.detail3   ?? '',
+        t.caption3  ?? '',
+      ])
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(termRows), '用語マスタ');
+
+    // ── 分類マスタ ──────────────────────────────
+    const catHeaders = ['分類コード', '分類名(日本語)', '読み', '分類名(FRE)', '分類名(英語)', '表示順', '分類名(第3言語)'];
+    const catRows = [
+      catHeaders,
+      ...exportedCats.map(c => [
+        c.code    ?? '',
+        c.nameJa  ?? '',
+        c.reading ?? '',
+        c.nameFr  ?? '',
+        c.nameEn  ?? '',
+        c.order   ?? 0,
+        c.name3   ?? '',
+      ])
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), '分類マスタ');
+
+    // ── 設定 ────────────────────────────────────
+    const settingsRows = [['キー', '値'], ['サイトタイトル', siteTitle]];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(settingsRows), '設定');
+
+    XLSX.writeFile(wb, 'glossary.xlsx');
+
+    resultDiv.innerHTML = `<div class="alert alert-success"><span class="alert-icon">✅</span><span>用語 ${exportedTerms.length} 件・分類 ${exportedCats.length} 件を <code>glossary.xlsx</code> として書き出しました。</span></div>`;
+    document.getElementById('export-status').textContent = `完了（${exportedTerms.length} 件）`;
+
+  } catch (err) {
+    resultDiv.innerHTML = `<div class="alert alert-error"><span class="alert-icon">❌</span><span>エラー: ${esc(err.message)}</span></div>`;
+  }
 }
 
 // Init

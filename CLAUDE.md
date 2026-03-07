@@ -41,9 +41,9 @@ cat package.json
 
 ### Excel Sheet Column Layout
 
-**用語マスタ** (col index): id(0), catCode(1), nameJa(2), readingJa(3), summaryJa(4), detailJa(5), nameFr(6), summaryFr(7), detailFr(8), nameEn(9), summaryEn(10), detailEn(11), image(12), captionJa(13), captionFr(14), captionEn(15), published(16)
+**用語マスタ** (col index): id(0), catCode(1), nameJa(2), readingJa(3), summaryJa(4), detailJa(5), nameFr(6), summaryFr(7), detailFr(8), nameEn(9), summaryEn(10), detailEn(11), image(12), captionJa(13), captionFr(14), captionEn(15), published(16), name3(17), summary3(18), detail3(19), caption3(20)
 
-**分類マスタ**: code(0), nameJa(1), reading(2), nameFr(3), nameEn(4), order(5)
+**分類マスタ**: code(0), nameJa(1), reading(2), nameFr(3), nameEn(4), order(5), name3(6)
 
 **設定**: key(0), value(1) — `サイトタイトル` sets the viewer page title.
 
@@ -51,7 +51,7 @@ cat package.json
 
 ### Key Implementation Notes
 
-- All logic is vanilla JS inside `admin/admin.html` (~1467 lines). There is no separate JS/CSS file.
+- All logic is vanilla JS inside `admin/admin.html` (~1474 lines). There is no separate JS/CSS file.
 - Translation uses `claude-sonnet-4-20250514` via `callAnthropicApi()` (line ~498). Calls are sequential with a 1-second delay between requests for rate limiting.
 - The generated `docs/index.html` embeds the viewer UI inline and all glossary data as JSON — produced by `buildIndexHtml()` (line ~939). Images are embedded as base64 `dataUrl` strings.
 - `termImages` is an in-memory object (`{termIdx: [{filename, dataUrl}]}`) populated during Step 2. Images are not persisted across page reloads.

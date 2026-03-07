@@ -78,8 +78,9 @@
     }
     .term-toggle:hover { background: #f9fafb; }
     .term-toggle.open { background: #eff6ff; color: var(--primary); }
-    .term-toggle-text { flex: 1; }
+    .term-toggle-text { flex: 1; display: flex; flex-direction: column; align-items: flex-start; }
     .term-reading { font-size: 0.8rem; font-weight: 400; color: var(--muted); margin-left: 6px; }
+    .term-romaji { font-size: 12px; color: #888; font-weight: 400; }
     .term-arrow { font-size: 0.75rem; color: var(--muted); flex-shrink: 0; transition: transform 0.2s; }
     .term-toggle.open .term-arrow { transform: rotate(180deg); color: var(--primary); }
 
@@ -158,6 +159,23 @@
     <div class="progress-step" id="ps-3"><div class="ps-circle">3</div><div class="ps-label">検証</div></div>
     <div class="progress-step" id="ps-4"><div class="ps-circle">4</div><div class="ps-label">生成</div></div>
     <div class="progress-step" id="ps-5"><div class="ps-circle">5</div><div class="ps-label">完了</div></div>
+  </div>
+
+  <!-- 言語設定 -->
+  <div style="background:white;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;padding:16px 20px;">
+    <div style="font-weight:700;font-size:1rem;margin-bottom:12px;">⚙ 言語設定</div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <label for="lang3-select" style="font-weight:600;white-space:nowrap;font-size:0.95rem;">3番目の言語:</label>
+      <select id="lang3-select" onchange="saveLang3(this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.95rem;min-height:38px;color:var(--text);">
+        <option value="FRE">FRE: フランス語（Français）</option>
+        <option value="NEP">NEP: ネパール語（नेपाली）</option>
+        <option value="SPA">SPA: スペイン語（Español）</option>
+        <option value="ARA">ARA: アラビア語（العربية）</option>
+        <option value="POR">POR: ポルトガル語（Português）</option>
+        <option value="CHN">CHN: 中国語（中文）</option>
+      </select>
+      <span style="font-size:0.85rem;color:var(--muted);">index.htmlの3番目のボタンになります</span>
+    </div>
   </div>
 
   <!-- STEP 1 -->
@@ -246,6 +264,19 @@ let settings = {};    // 設定シート
 let validationErrors = [];
 let validationWarnings = [];
 let generatedHtml = '';
+
+// ============================================================
+// Lang3 config
+// ============================================================
+const LANG3_OPTIONS = [
+  { code: 'FRE', label: 'FRE: フランス語（Français）',  langName: 'フランス語' },
+  { code: 'NEP', label: 'NEP: ネパール語（नेपाली）',    langName: 'ネパール語' },
+  { code: 'SPA', label: 'SPA: スペイン語（Español）',   langName: 'スペイン語' },
+  { code: 'ARA', label: 'ARA: アラビア語（العربية）',   langName: 'アラビア語' },
+  { code: 'POR', label: 'POR: ポルトガル語（Português）', langName: 'ポルトガル語' },
+  { code: 'CHN', label: 'CHN: 中国語（中文）',           langName: '中国語' },
+];
+let lang3Code = localStorage.getItem('lang3_code') || 'FRE';
 
 // ============================================================
 // Step progress helpers
@@ -363,6 +394,10 @@ function parseTermSheet(sheet) {
     captionFr:String(r[14] || '').trim(),
     captionEn:String(r[15] || '').trim(),
     published: String(r[16] || '').trim(),
+    name3:    String(r[17] || '').trim(),
+    summary3: String(r[18] || '').trim(),
+    detail3:  String(r[19] || '').trim(),
+    caption3: String(r[20] || '').trim(),
   })).filter(r => r.id !== '' || r.nameJa !== '');
 }
 
@@ -377,6 +412,7 @@ function parseCatSheet(sheet) {
     nameFr: String(r[3] || '').trim(),
     nameEn: String(r[4] || '').trim(),
     order:  Number(r[5]) || 0,
+    name3:  String(r[6] || '').trim(),
   })).filter(r => r.code !== '');
 }
 
@@ -386,6 +422,8 @@ function parseSettings(sheet) {
   rows.forEach(r => {
     if (r[0]) obj[String(r[0]).trim()] = String(r[1] || '').trim();
   });
+  // B4セル（行インデックス3・列インデックス1）= アプリ名（英語）
+  if (rows[3] && rows[3][1]) obj['_titleEn'] = String(rows[3][1]).trim();
   return obj;
 }
 
@@ -402,7 +440,7 @@ function showStep1Alert(type, msg) {
 function renderStep2() {
   const published = terms.filter(t => t.published === '1' || t.published.toLowerCase() === 'true' || t.published === '公開');
   const withImage = terms.filter(t => t.image).length;
-  const withFr = terms.filter(t => t.nameFr).length;
+  const withLang3 = terms.filter(t => t.name3).length;
   const withEn = terms.filter(t => t.nameEn).length;
   const savedKey = loadApiKey();
 
@@ -413,7 +451,7 @@ function renderStep2() {
       <div class="stat-card"><div class="stat-value">${published.length}</div><div class="stat-label">公開フラグON</div></div>
       <div class="stat-card"><div class="stat-value">${categories.length}</div><div class="stat-label">分類数</div></div>
       <div class="stat-card"><div class="stat-value">${withImage}</div><div class="stat-label">画像あり</div></div>
-      <div class="stat-card"><div class="stat-value">${withFr}</div><div class="stat-label">仏語あり</div></div>
+      <div class="stat-card"><div class="stat-value">${withLang3}</div><div class="stat-label">${lang3Code}あり</div></div>
       <div class="stat-card"><div class="stat-value">${withEn}</div><div class="stat-label">英語あり</div></div>
     </div>
 
@@ -441,13 +479,13 @@ function renderStep2() {
     <div class="section-label">分類マスタ一覧</div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>分類コード</th><th>分類名(日本語)</th><th>分類名(仏)</th><th>分類名(英)</th><th>表示順</th></tr></thead>
+        <thead><tr><th>分類コード</th><th>分類名(日本語)</th><th>分類名(${lang3Code})</th><th>分類名(英)</th><th>表示順</th></tr></thead>
         <tbody>
           ${categories.sort((a,b) => a.order - b.order).map(c => `
             <tr>
               <td><code>${esc(c.code)}</code></td>
               <td>${esc(c.nameJa)}</td>
-              <td>${esc(c.nameFr)}</td>
+              <td>${esc(c.name3)}</td>
               <td>${esc(c.nameEn)}</td>
               <td>${c.order}</td>
             </tr>
@@ -485,6 +523,19 @@ function renderStep2() {
 function loadApiKey() { return localStorage.getItem('anthropic_api_key') || ''; }
 function saveApiKey(key) { localStorage.setItem('anthropic_api_key', key); }
 
+function saveLang3(code) {
+  lang3Code = code;
+  localStorage.setItem('lang3_code', code);
+}
+function getLang3Name() {
+  const opt = LANG3_OPTIONS.find(o => o.code === lang3Code);
+  return opt ? opt.langName : 'フランス語';
+}
+function initLang3Select() {
+  const sel = document.getElementById('lang3-select');
+  if (sel) sel.value = lang3Code;
+}
+
 function onApiKeyInput() {
   const key = (document.getElementById('api-key-input') || {}).value || '';
   const has = key.trim().length > 0;
@@ -496,7 +547,7 @@ function onApiKeyInput() {
 
 // 1件ずつ翻訳するシンプルなAPI呼び出し
 async function callAnthropicApi(srcText, lang, apiKey) {
-  const langName = lang === 'fr' ? 'フランス語' : '英語';
+  const langName = lang === 'lang3' ? getLang3Name() : '英語';
   const prompt = `以下の日本語テキストを${langName}に翻訳してください。専門用語は正確に翻訳し、翻訳結果のテキストのみ返答してください。\n\n${srcText}`;
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -525,10 +576,12 @@ async function callAnthropicApi(srcText, lang, apiKey) {
 function buildTranslationTasks(mode) {
   const tasks = [];
 
+  const l3 = lang3Code; // 第3言語コード（ラベル用）
+
   // 分類マスタ
   categories.forEach(function(c, idx) {
     if (!c.nameJa) return;
-    if (mode === 'all' || !c.nameFr) tasks.push({ type: 'cat', idx: idx, field: 'nameFr', lang: 'fr', src: c.nameJa, label: '分類「' + c.nameJa + '」→仏' });
+    if (mode === 'all' || !c.name3) tasks.push({ type: 'cat', idx: idx, field: 'name3', lang: 'lang3', src: c.nameJa, label: '分類「' + c.nameJa + '」→' + l3 });
     if (mode === 'all' || !c.nameEn) tasks.push({ type: 'cat', idx: idx, field: 'nameEn', lang: 'en', src: c.nameJa, label: '分類「' + c.nameJa + '」→英' });
   });
 
@@ -536,11 +589,11 @@ function buildTranslationTasks(mode) {
   terms.forEach(function(t, idx) {
     if (!t.nameJa) return;
     var lbl = '「' + t.nameJa + '」';
-    // フランス語
-    if (mode === 'all' || !t.nameFr)    tasks.push({ type: 'term', idx: idx, field: 'nameFr',    lang: 'fr', src: t.nameJa,    label: lbl + ' 用語→仏' });
-    if (mode === 'all' || !t.summaryFr) tasks.push({ type: 'term', idx: idx, field: 'summaryFr', lang: 'fr', src: t.summaryJa, label: lbl + ' 概要→仏' });
-    if (t.detailJa  && (mode === 'all' || !t.detailFr))  tasks.push({ type: 'term', idx: idx, field: 'detailFr',  lang: 'fr', src: t.detailJa,  label: lbl + ' 詳細→仏' });
-    if (t.captionJa && (mode === 'all' || !t.captionFr)) tasks.push({ type: 'term', idx: idx, field: 'captionFr', lang: 'fr', src: t.captionJa, label: lbl + ' キャプ→仏' });
+    // 第3言語
+    if (mode === 'all' || !t.name3)    tasks.push({ type: 'term', idx: idx, field: 'name3',    lang: 'lang3', src: t.nameJa,    label: lbl + ' 用語→' + l3 });
+    if (mode === 'all' || !t.summary3) tasks.push({ type: 'term', idx: idx, field: 'summary3', lang: 'lang3', src: t.summaryJa, label: lbl + ' 概要→' + l3 });
+    if (t.detailJa  && (mode === 'all' || !t.detail3))  tasks.push({ type: 'term', idx: idx, field: 'detail3',  lang: 'lang3', src: t.detailJa,  label: lbl + ' 詳細→' + l3 });
+    if (t.captionJa && (mode === 'all' || !t.caption3)) tasks.push({ type: 'term', idx: idx, field: 'caption3', lang: 'lang3', src: t.captionJa, label: lbl + ' キャプ→' + l3 });
     // 英語
     if (mode === 'all' || !t.nameEn)    tasks.push({ type: 'term', idx: idx, field: 'nameEn',    lang: 'en', src: t.nameJa,    label: lbl + ' 用語→英' });
     if (mode === 'all' || !t.summaryEn) tasks.push({ type: 'term', idx: idx, field: 'summaryEn', lang: 'en', src: t.summaryJa, label: lbl + ' 概要→英' });
@@ -727,12 +780,12 @@ function renderTranslationTable(errorItems) {
   const result = document.getElementById('translate-result');
 
   const catRows = categories.map((c, i) => {
-    const frCls = errorSet.has(`cat-${i}-fr`) ? 'cell-error' : '';
+    const l3Cls = errorSet.has(`cat-${i}-lang3`) ? 'cell-error' : '';
     const enCls = errorSet.has(`cat-${i}-en`) ? 'cell-error' : '';
     return `<tr>
       <td><code>${esc(c.code)}</code></td>
       <td>${esc(c.nameJa)}</td>
-      <td class="${frCls}"><span contenteditable="true" data-type="cat" data-idx="${i}" data-field="nameFr" oninput="updateTranslatedField(this)">${esc(c.nameFr)}</span></td>
+      <td class="${l3Cls}"><span contenteditable="true" data-type="cat" data-idx="${i}" data-field="name3" oninput="updateTranslatedField(this)">${esc(c.name3)}</span></td>
       <td class="${enCls}"><span contenteditable="true" data-type="cat" data-idx="${i}" data-field="nameEn" oninput="updateTranslatedField(this)">${esc(c.nameEn)}</span></td>
     </tr>`;
   }).join('');
@@ -748,7 +801,7 @@ function renderTranslationTable(errorItems) {
     return `<tr>
       <td><code>${esc(t.id)}</code></td>
       <td>${esc(t.nameJa)}</td>
-      ${editCell('nameFr','fr')}${editCell('summaryFr','fr')}${editCell('detailFr','fr')}
+      ${editCell('name3','lang3')}${editCell('summary3','lang3')}${editCell('detail3','lang3')}
       ${editCell('nameEn','en')}${editCell('summaryEn','en')}${editCell('detailEn','en')}
       <td style="min-width:130px;vertical-align:top;">
         <div class="img-thumb-row" id="img-row-${i}"></div>
@@ -763,7 +816,7 @@ function renderTranslationTable(errorItems) {
     <div class="section-label" style="margin-top:16px;">分類マスタ 翻訳結果（クリックで編集可）</div>
     <div class="translate-table-wrap" style="margin-bottom:16px;">
       <table class="translate-table">
-        <thead><tr><th>分類コード</th><th>分類名(日本語)</th><th>分類名(仏) ✏</th><th>分類名(英) ✏</th></tr></thead>
+        <thead><tr><th>分類コード</th><th>分類名(日本語)</th><th>分類名(${lang3Code}) ✏</th><th>分類名(英) ✏</th></tr></thead>
         <tbody>${catRows}</tbody>
       </table>
     </div>
@@ -772,7 +825,7 @@ function renderTranslationTable(errorItems) {
       <table class="translate-table">
         <thead><tr>
           <th>用語ID</th><th>用語(日本語)</th>
-          <th>用語(仏) ✏</th><th>概要(仏) ✏</th><th>詳細(仏) ✏</th>
+          <th>用語(${lang3Code}) ✏</th><th>概要(${lang3Code}) ✏</th><th>詳細(${lang3Code}) ✏</th>
           <th>用語(英) ✏</th><th>概要(英) ✏</th><th>詳細(英) ✏</th>
           <th>画像</th>
         </tr></thead>
@@ -840,9 +893,9 @@ function runValidation() {
     }
   });
 
-  // Warning: 仏語・英語の翻訳が空
+  // Warning: 第3言語・英語の翻訳が空
   terms.forEach(t => {
-    if (!t.nameFr) validationWarnings.push(`行 ${t.rowNum}（${t.nameJa}）: 用語(仏)が空です`);
+    if (!t.name3) validationWarnings.push(`行 ${t.rowNum}（${t.nameJa}）: 用語(${lang3Code})が空です`);
     if (!t.nameEn) validationWarnings.push(`行 ${t.rowNum}（${t.nameJa}）: 用語(英)が空です`);
   });
 }
@@ -952,7 +1005,8 @@ function buildIndexHtml() {
   });
   const termsJson = JSON.stringify(publishedTermsWithImages);
   const catsJson = JSON.stringify(sortedCats);
-  const siteTitle = settings['サイトタイトル'] || settings['title'] || '用語集';
+  const siteTitle = settings['_titleEn'] || settings['サイトタイトル'] || settings['title'] || '用語集';
+  const lang3CodeVal = lang3Code;
 
   return `<!DOCTYPE html>
 <html lang="ja">
@@ -1032,8 +1086,9 @@ function buildIndexHtml() {
     }
     .term-toggle:hover { background: #f9fafb; }
     .term-toggle.open { background: #eff6ff; color: var(--primary); }
-    .term-toggle-text { flex: 1; }
+    .term-toggle-text { flex: 1; display: flex; flex-direction: column; align-items: flex-start; }
     .term-reading { font-size: 0.8rem; font-weight: 400; color: var(--muted); margin-left: 6px; }
+    .term-romaji { font-size: 12px; color: #888; font-weight: 400; }
     .term-arrow { font-size: 0.75rem; color: var(--muted); flex-shrink: 0; transition: transform 0.2s; }
     .term-toggle.open .term-arrow { transform: rotate(180deg); color: var(--primary); }
 
@@ -1096,9 +1151,9 @@ function buildIndexHtml() {
     <div class="header-inner">
       <h1>${esc(siteTitle)}</h1>
       <div class="lang-bar">
-        <button class="lang-btn active" onclick="setLang('ja', this)"><span class="full-text">日本語</span><span class="short-text">日</span></button>
-        <button class="lang-btn" onclick="setLang('fr', this)"><span class="full-text">Français</span><span class="short-text">FR</span></button>
-        <button class="lang-btn" onclick="setLang('en', this)"><span class="full-text">English</span><span class="short-text">EN</span></button>
+        <button class="lang-btn active" onclick="setLang('ja', this)">JPN</button>
+        <button class="lang-btn" onclick="setLang('en', this)">ENG</button>
+        <button class="lang-btn" onclick="setLang('lang3', this)">${esc(lang3CodeVal)}</button>
       </div>
     </div>
   </header>
@@ -1148,36 +1203,93 @@ function setLang(lang, btn) {
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   const si = document.getElementById('search-input');
-  si.placeholder = lang === 'ja' ? 'キーワードで検索...' : (lang === 'fr' ? 'Rechercher...' : 'Search...');
+  si.placeholder = lang === 'ja' ? 'キーワードで検索...' : 'Search...';
   renderCatFilter();
   renderTerms();
 }
 
 function catName(cat) {
   if (!cat) return '';
-  if (currentLang === 'fr') return cat.nameFr || cat.nameJa;
+  if (currentLang === 'lang3') return cat.name3 || cat.nameEn || cat.nameJa;
   if (currentLang === 'en') return cat.nameEn || cat.nameJa;
   return cat.nameJa;
 }
 function termName(t) {
-  if (currentLang === 'fr') return t.nameFr || t.nameJa;
+  if (currentLang === 'lang3') return t.name3 || t.nameEn || t.nameJa;
   if (currentLang === 'en') return t.nameEn || t.nameJa;
   return t.nameJa;
 }
 function termSummary(t) {
-  if (currentLang === 'fr') return t.summaryFr || t.summaryJa;
+  if (currentLang === 'lang3') return t.summary3 || t.summaryEn || t.summaryJa;
   if (currentLang === 'en') return t.summaryEn || t.summaryJa;
   return t.summaryJa;
 }
 function termDetail(t) {
-  if (currentLang === 'fr') return t.detailFr || t.detailJa;
+  if (currentLang === 'lang3') return t.detail3 || t.detailEn || t.detailJa;
   if (currentLang === 'en') return t.detailEn || t.detailJa;
   return t.detailJa;
 }
 function termCaption(t) {
-  if (currentLang === 'fr') return t.captionFr || t.captionJa;
+  if (currentLang === 'lang3') return t.caption3 || t.captionEn || t.captionJa;
   if (currentLang === 'en') return t.captionEn || t.captionJa;
   return t.captionJa;
+}
+
+function kanaToRomaji(str) {
+  if (!str) return '';
+  const pairs = [
+    ['きゃ','kya'],['きゅ','kyu'],['きょ','kyo'],
+    ['しゃ','sha'],['しゅ','shu'],['しょ','sho'],
+    ['ちゃ','cha'],['ちゅ','chu'],['ちょ','cho'],
+    ['にゃ','nya'],['にゅ','nyu'],['にょ','nyo'],
+    ['ひゃ','hya'],['ひゅ','hyu'],['ひょ','hyo'],
+    ['みゃ','mya'],['みゅ','myu'],['みょ','myo'],
+    ['りゃ','rya'],['りゅ','ryu'],['りょ','ryo'],
+    ['ぎゃ','gya'],['ぎゅ','gyu'],['ぎょ','gyo'],
+    ['じゃ','ja'],['じゅ','ju'],['じょ','jo'],
+    ['あ','a'],['い','i'],['う','u'],['え','e'],['お','o'],
+    ['か','ka'],['き','ki'],['く','ku'],['け','ke'],['こ','ko'],
+    ['さ','sa'],['し','shi'],['す','su'],['せ','se'],['そ','so'],
+    ['た','ta'],['ち','chi'],['つ','tsu'],['て','te'],['と','to'],
+    ['な','na'],['に','ni'],['ぬ','nu'],['ね','ne'],['の','no'],
+    ['は','ha'],['ひ','hi'],['ふ','fu'],['へ','he'],['ほ','ho'],
+    ['ま','ma'],['み','mi'],['む','mu'],['め','me'],['も','mo'],
+    ['や','ya'],['ゆ','yu'],['よ','yo'],
+    ['ら','ra'],['り','ri'],['る','ru'],['れ','re'],['ろ','ro'],
+    ['わ','wa'],['を','wo'],['ん','n'],
+    ['が','ga'],['ぎ','gi'],['ぐ','gu'],['げ','ge'],['ご','go'],
+    ['ざ','za'],['じ','ji'],['ず','zu'],['ぜ','ze'],['ぞ','zo'],
+    ['だ','da'],['ぢ','di'],['づ','du'],['で','de'],['ど','do'],
+    ['ば','ba'],['び','bi'],['ぶ','bu'],['べ','be'],['ぼ','bo'],
+    ['ぱ','pa'],['ぴ','pi'],['ぷ','pu'],['ぺ','pe'],['ぽ','po'],
+    ['ぁ','a'],['ぃ','i'],['ぅ','u'],['ぇ','e'],['ぉ','o'],
+    ['ー','-'],
+  ];
+  let result = '';
+  let i = 0;
+  while (i < str.length) {
+    if (str[i] === 'っ') {
+      const rest = str.slice(i + 1);
+      let nextRomaji = '';
+      for (const [k, v] of pairs) {
+        if (rest.startsWith(k)) { nextRomaji = v; break; }
+      }
+      result += nextRomaji ? nextRomaji[0] : 't';
+      i++;
+      continue;
+    }
+    let matched = false;
+    for (const [k, v] of pairs) {
+      if (str.startsWith(k, i)) {
+        result += v;
+        i += k.length;
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) { result += str[i]; i++; }
+  }
+  return result;
 }
 
 function sortTerms(arr) {
@@ -1186,7 +1298,7 @@ function sortTerms(arr) {
       const ra = a.readingJa || termName(a), rb = b.readingJa || termName(b);
       return ra.localeCompare(rb, 'ja');
     }
-    return termName(a).localeCompare(termName(b), currentLang === 'fr' ? 'fr' : 'en');
+    return termName(a).localeCompare(termName(b));
   });
 }
 
@@ -1195,7 +1307,7 @@ function renderCatFilter() {
   if (btnAll) btnAll.classList.toggle('active', currentCat === 'all');
   const sel = document.getElementById('categorySelect');
   if (sel) {
-    const placeholder = currentLang === 'ja' ? '\u5206\u91ce\u3092\u9078\u3076' : (currentLang === 'fr' ? 'Choisir le domaine' : 'Choose category');
+    const placeholder = currentLang === 'ja' ? '\u5206\u91ce\u3092\u9078\u3076' : 'Choose category';
     let html = '<option value="">' + placeholder + '</option>';
     CATEGORIES.forEach(function(c) {
       html += '<option value="' + esc2(c.code) + '"' + (currentCat === c.code ? ' selected' : '') + '>' + esc2(catName(c)) + '</option>';
@@ -1222,29 +1334,29 @@ function renderTerms() {
   let filtered = TERMS.filter(t => {
     if (currentCat !== 'all' && t.catCode !== currentCat) return false;
     if (!q) return true;
-    return (termName(t) + termSummary(t) + (t.readingJa || '') + (t.nameFr || '') + (t.nameEn || '')).toLowerCase().includes(q);
+    return (termName(t) + termSummary(t) + (t.readingJa || '') + (t.name3 || '') + (t.nameEn || '')).toLowerCase().includes(q);
   });
   const sorted = sortTerms(filtered);
   const wrap = document.getElementById('term-list-wrap');
   const countEl = document.getElementById('result-count');
 
-  const labels = { ja: '件の用語', fr: ' terme(s)', en: ' term(s)' };
+  const labels = { ja: '件の用語', en: ' term(s)', lang3: ' term(s)' };
   countEl.textContent = sorted.length + (labels[currentLang] || '件');
 
   if (sorted.length === 0) {
-    wrap.innerHTML = \`<div class="empty"><div class="icon">🔍</div><div>\${currentLang === 'ja' ? '該当する用語が見つかりません' : currentLang === 'fr' ? 'Aucun terme trouvé' : 'No terms found'}</div></div>\`;
+    wrap.innerHTML = \`<div class="empty"><div class="icon">🔍</div><div>\${currentLang === 'ja' ? '該当する用語が見つかりません' : 'No terms found'}</div></div>\`;
     return;
   }
 
-  const detailLabel = currentLang === 'ja' ? '詳細を見る' : (currentLang === 'fr' ? 'Voir le détail' : 'Show details');
-  const detailCloseLabel = currentLang === 'ja' ? '閉じる' : (currentLang === 'fr' ? 'Fermer' : 'Close');
+  const detailLabel = currentLang === 'ja' ? '詳細を見る' : 'Show details';
+  const detailCloseLabel = currentLang === 'ja' ? '閉じる' : 'Close';
 
   _termIdByItemId = {};
   const items = sorted.map((t, i) => {
     const itemId = 'item-' + i;
     _termIdByItemId[itemId] = t.id;
     const name = esc2(termName(t));
-    const reading = (currentLang === 'ja' && t.readingJa) ? \`<span class="term-reading">（\${esc2(t.readingJa)}）</span>\` : '';
+    const romajiHtml = (currentLang === 'ja' && t.readingJa) ? \`<span class="term-romaji">\${esc2(kanaToRomaji(t.readingJa))}</span>\` : '';
     const summary = esc2(termSummary(t));
     const detail = termDetail(t);
     const caption = termCaption(t);
@@ -1256,7 +1368,7 @@ function renderTerms() {
       const cap = esc2(caption);
       let imgHtml = '';
       if (hasImages) {
-        const imgTitle = currentLang === 'ja' ? '図・写真' : (currentLang === 'fr' ? 'Figures et photos' : 'Figures and Photos');
+        const imgTitle = currentLang === 'ja' ? '図・写真' : 'Figures and Photos';
         imgHtml = '<div class="term-images-section"><div class="term-images-title">' + esc2(imgTitle) + '</div>';
         t.images.forEach(function(img) {
           imgHtml += '<div class="term-image-item"><img class="term-detail-image" src="' + img.dataUrl + '" alt="' + cap + '">';
@@ -1282,7 +1394,7 @@ function renderTerms() {
 
     return \`<div class="term-item" id="\${itemId}">
       <button class="term-toggle" id="toggle-\${itemId}" onclick="toggleSummary('\${itemId}')">
-        <span class="term-toggle-text">\${name}\${reading}</span>
+        <span class="term-toggle-text">\${name}\${romajiHtml}</span>
         <span class="term-arrow">▼</span>
       </button>
       <div class="term-summary-panel" id="summary-\${itemId}">
@@ -1316,7 +1428,7 @@ function _applyOpenState(itemId) {
     const btn = document.getElementById('dtbtn-' + itemId);
     const panel = document.getElementById('detail-' + itemId);
     const labelEl = document.getElementById('dtlabel-' + itemId);
-    const closeLabel = currentLang === 'ja' ? '\u9589\u3058\u308b' : (currentLang === 'fr' ? 'Fermer' : 'Close');
+    const closeLabel = currentLang === 'ja' ? '\u9589\u3058\u308b' : 'Close';
     if (btn && panel) {
       btn.classList.add('open');
       panel.classList.add('open');
@@ -1371,8 +1483,8 @@ function toggleDetail(itemId) {
   const btn = document.getElementById('dtbtn-' + itemId);
   const panel = document.getElementById('detail-' + itemId);
   const labelEl = document.getElementById('dtlabel-' + itemId);
-  const detailLabel = currentLang === 'ja' ? '詳細を見る' : (currentLang === 'fr' ? 'Voir le détail' : 'Show details');
-  const detailCloseLabel = currentLang === 'ja' ? '閉じる' : (currentLang === 'fr' ? 'Fermer' : 'Close');
+  const detailLabel = currentLang === 'ja' ? '詳細を見る' : 'Show details';
+  const detailCloseLabel = currentLang === 'ja' ? '閉じる' : 'Close';
 
   const isOpen = panel.classList.toggle('open');
   btn.classList.toggle('open', isOpen);
@@ -1456,6 +1568,9 @@ git push origin main</pre>
   `;
   markStepDone(5, '完了');
 }
+
+// Init
+initLang3Select();
 
 // ============================================================
 // Utility

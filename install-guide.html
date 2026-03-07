@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>glossary-app インストール・操作ガイド</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222536;
+    --border: #2e3347;
+    --accent: #4f8ef7;
+    --accent2: #38c9a0;
+    --accent3: #f7c94f;
+    --danger: #f76f6f;
+    --text: #e8eaf2;
+    --text-muted: #7c8099;
+    --text-dim: #4a4f6a;
+    --radius: 10px;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Noto Sans JP', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  /* ヘッダー */
+  header {
+    background: linear-gradient(135deg, #1a1d27 0%, #0f1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 24px 28px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+
+  .header-inner {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .header-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.02em;
+  }
+
+  .header-title span {
+    color: var(--accent);
+  }
+
+  .badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+
+  /* メインレイアウト */
+  main {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* セクション */
+  .section {
+    margin-bottom: 40px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-family: var(--mono);
+  }
+
+  .section-number.green { background: var(--accent2); }
+  .section-number.yellow { background: var(--accent3); color: #1a1d27; }
+  .section-number.red { background: var(--danger); }
+
+  .section-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .section-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* ステップカード */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .step:hover {
+    border-color: var(--accent);
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    flex-shrink: 0;
+  }
+
+  .step-label {
+    font-size: 15px;
+    font-weight: 500;
+    flex: 1;
+  }
+
+  .step-arrow {
+    color: var(--text-dim);
+    font-size: 12px;
+    transition: transform 0.2s;
+  }
+
+  .step.open .step-arrow {
+    transform: rotate(180deg);
+  }
+
+  .step-body {
+    display: none;
+    padding: 0 16px 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .step.open .step-body {
+    display: block;
+  }
+
+  .step-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 12px 0 10px;
+    line-height: 1.6;
+  }
+
+  /* コードブロック */
+  .code-block {
+    background: #0a0c12;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 10px 0;
+    overflow: hidden;
+  }
+
+  .code-label {
+    background: var(--surface2);
+    padding: 6px 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .copy-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-family: var(--mono);
+    transition: all 0.15s;
+  }
+
+  .copy-btn:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .copy-btn.copied {
+    background: var(--accent2);
+    color: #fff;
+    border-color: var(--accent2);
+  }
+
+  pre {
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-x: auto;
+    color: #c8d3f5;
+  }
+
+  pre .comment { color: var(--text-dim); }
+  pre .cmd { color: var(--accent2); }
+  pre .path { color: var(--accent3); }
+  pre .flag { color: #c099ff; }
+
+  /* 注意・ヒントボックス */
+  .alert {
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    margin: 10px 0;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 1.6;
+  }
+
+  .alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  .alert.tip {
+    background: rgba(79, 142, 247, 0.08);
+    border: 1px solid rgba(79, 142, 247, 0.25);
+    color: #a8c4ff;
+  }
+
+  .alert.warn {
+    background: rgba(247, 201, 79, 0.08);
+    border: 1px solid rgba(247, 201, 79, 0.25);
+    color: #f7e4a0;
+  }
+
+  .alert.danger {
+    background: rgba(247, 111, 111, 0.08);
+    border: 1px solid rgba(247, 111, 111, 0.25);
+    color: #ffb3b3;
+  }
+
+  .alert.success {
+    background: rgba(56, 201, 160, 0.08);
+    border: 1px solid rgba(56, 201, 160, 0.25);
+    color: #a0f0d8;
+  }
+
+  /* チェックリスト */
+  .checklist {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 10px 0;
+  }
+
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .checklist li input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    accent-color: var(--accent2);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .checklist li label {
+    cursor: pointer;
+  }
+
+  .checklist li.checked label {
+    text-decoration: line-through;
+    color: var(--text-dim);
+  }
+
+  /* フローチャート */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 12px 0;
+  }
+
+  .flow-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .flow-icon {
+    font-size: 16px;
+    width: 24px;
+    text-align: center;
+  }
+
+  .flow-arrow {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 16px;
+    padding: 2px 0;
+  }
+
+  /* トラブルシューティング */
+  .faq {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .faq-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .faq-q {
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--danger);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+
+  .faq-q::before { content: "Q"; font-family: var(--mono); font-weight: 700; }
+
+  .faq-a {
+    display: none;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    line-height: 1.7;
+  }
+
+  .faq-item.open .faq-a { display: block; }
+
+  /* テーブル */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 10px 0;
+  }
+
+  th {
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-weight: 600;
+    padding: 8px 12px;
+    text-align: left;
+    border: 1px solid var(--border);
+    font-size: 12px;
+  }
+
+  td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+
+  td code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--accent3);
+  }
+
+  /* プログレスバー */
+  .progress-bar {
+    background: var(--surface2);
+    border-radius: 20px;
+    height: 6px;
+    margin: 8px 0 16px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 20px;
+    transition: width 0.4s ease;
+  }
+
+  .progress-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-bottom: 4px;
+  }
+
+  /* 全体の進捗 */
+  #overall-progress {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 32px;
+  }
+
+  .progress-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  #progress-count {
+    font-family: var(--mono);
+    color: var(--accent2);
+  }
+
+  /* リセットボタン */
+  .reset-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--mono);
+    transition: all 0.15s;
+    float: right;
+  }
+
+  .reset-btn:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  /* スマホ対応 */
+  @media (max-width: 600px) {
+    header { padding: 20px 16px; }
+    main { padding: 20px 16px 60px; }
+    .header-title { font-size: 15px; }
+    pre { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="header-title"><span>glossary-app</span> インストール・操作ガイド</div>
+    </div>
+    <div class="badge">Mac専用</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- 進捗 -->
+  <div id="overall-progress">
+    <div class="progress-title">
+      作業進捗
+      <button class="reset-btn" onclick="resetProgress()">リセット</button>
+    </div>
+    <div class="progress-label">完了: <span id="progress-count">0</span> / <span id="progress-total">0</span> 項目</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- セクション1: 初回セットアップ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">1</div>
+      <div>
+        <div class="section-title">初回セットアップ</div>
+        <div class="section-subtitle">GitHubからMacにダウンロードして使えるようにする</div>
+      </div>
+    </div>
+
+    <div class="steps">
+
+      <div class="step" id="step-1-1">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num">1</div>
+          <div class="step-label">ターミナルを開く</div>
+          <div class="step-arrow">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="step-desc">Macに標準搭載されているターミナルアプリを開きます。</div>
+          <div class="alert tip"><span class="alert-icon">💡</span>キーボードで <strong>Cmd + Space</strong> を押して「ターミナル」と入力 → Enterで起動</div>
+          <ul class="checklist">
+            <li><input type="checkbox" onchange="updateProgress(this)"><label>ターミナルが起動した</label></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step" id="step-1-2">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num">2</div>
+          <div class="step-label">Documentsフォルダに移動する</div>
+          <div class="step-arrow">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="step-desc">以下のコマンドをコピーしてターミナルに貼り付け、Enterを押してください。</div>
+          <div class="code-block">
+            <div class="code-label">ターミナル <button class="copy-btn" onclick="copyCode(this, 'cd ~/Documents')">コピー</button></div>
+            <pre><span class="cmd">cd</span> ~/Documents</pre>
+          </div>
+          <ul class="checklist">
+            <li><input type="checkbox" onchange="updateProgress(this)"><label>エラーなく実行できた</label></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step" id="step-1-3">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num">3</div>
+          <div class="step-label">GitHubからダウンロード（クローン）する</div>
+          <div class="step-arrow">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="step-desc">「ユーザー名」の部分をあなたのGitHubユーザー名に変えて実行してください。</div>
+          <div class="code-block">
+            <div class="code-label">ターミナル <button class="copy-btn" onclick="copyCode(this, 'git clone https://github.com/ユーザー名/glossary-app.git')">コピー</button></div>
+            <pre><span class="cmd">git clone</span> https://github.com/<span class="path">ユーザー名</span>/glossary-app.git</pre>
+          </div>
+          <div class="alert warn"><span class="alert-icon">⚠️</span>「ユーザー名」はGitHubのアカウント名に変えてください。GitHubのリポジトリページのURLで確認できます。</div>
+          <ul class="checklist">
+            <li><input type="checkbox" onchange="updateProgress(this)"><label>「Cloning into...」と表示されダウンロードが完了した</label></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step" id="step-1-4">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num">4</div>
+          <div class="step-label">フォルダの中に入る</div>
+          <div class="step-arrow">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="code-block">
+            <div class="code-label">ターミナル <button class="copy-btn" onclick="copyCode(this, 'cd glossary-app')">コピー</button></div>
+            <pre><span class="cmd">cd</span> glossary-app</pre>
+          </div>
+          <ul class="checklist">
+            <li><input type="checkbox" onchange="updateProgress(this)"><label>エラーなく実行できた</label></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step" id="step-1-5">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num">5</div>
+          <div class="step-label">必要なツールをインストールする</div>
+          <div class="step-arrow">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="step-desc">Excelを読み込むために必要なツールをインストールします。初回のみ必要です。</div>
+          <div class="code-block">
+            <div class="code-label">ターミナル <button class="copy-btn" onclick="copyCode(this, 'npm install')">コピー</button></div>
+            <pre><span class="cmd">npm install</span></pre>
+          </div>
+          <div class="alert tip"><span class="alert-icon">💡</span>「added XX packages」と表示されれば成功です。警告（warn）が出ても問題ありません。</div>
+          <ul class="checklist">
+            <li><input type="checkbox" onchange="updateProgress(this)"><label>「added XX packages」と表示された</label></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step" id="step-1-6">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num">6</div>
+          <div class="step-label">VS Codeで開く</div>
+          <div class="step-arrow">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="code-block">
+            <div class="code-label">ターミナル <button class="copy-btn" onclick="copyCode(this, 'code .')">コピー</button></div>
+            <pre><span class="cmd">code</span> <span class="flag">.</span></pre>
+          </div>
+          <div class="alert warn"><span class="alert-icon">⚠️</span>「command not found: code」と表示された場合は、VS Codeを開いて「Cmd+Shift+P」→「Shell コマンド: PATH内に 'code' コマンドをインストール」を実行してください。</div>
+          <ul class="checklist">
+            <li><input type="checkbox" onchange="updateProgress(this)"><label>VS Codeでフォルダが開いた</label></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step" id="step-1-7">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num">7</div>
+          <div class="step-label">管理画面を開いて動作確認する</div>
+          <div class="step-arrow">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="code-block">
+            <div class="code-label">ターミナル <button class="copy-btn" onclick="copyCode(this, 'open admin/admin.html')">コピー</button></div>
+            <pre><span class="cmd">open</span> admin/admin.html</pre>
+          </div>
+          <div class="alert success"><span class="alert-icon">✅</span>ブラウザで管理画面が開けば初回セットアップ完了です！</div>
+          <ul class="checklist">
+            <li><input type="checkbox" onchange="updateProgress(this)"><label>ブラウザで管理画面が開いた</label></li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- セクション2: 日常の更新作業 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number green">2</div>
+      <div>
+        <div class="section-title">日常の更新作業</div>
+        <div class="section-subtitle">用語を追加・修正してWebサイトに反映する</div>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="flow-item"><span class="flow-icon">📊</span>Libre OfficeでExcelを編集・保存</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-item"><span class="flow-icon">🖥️</span>admin.htmlでExcelを読み込む</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-item"><span class="flow-icon">🤖</span>必要に応じてAI翻訳を実行</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-item"><span class="flow-icon">⚙️</span>HTMLを生成・ダウンロード</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-item"><span class="flow-icon">📁</span>docs/フォルダに配置</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-item"><span class="flow-icon">☁️</span>GitHubにPush</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-item"><span class="flow-icon">✅</span>ローカルで確認</div>
+    </div>
+
+    <div class="steps" style="margin-top:20px">
+
+      <div class="step">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num">1</div>
+          <div class="step-label">Excelを編集して保存する</div>
+          <div class="step-arrow">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="step-desc">Libre Officeで <code>data/glossary.xlsx</code> を開き、用語を追加・修正します。</div>
+          <table>
+            <tr><th>シート</th><th>内容</th></tr>
+            <tr><td>用語マスタ</td><td>用語の追加・修正</td></tr>
+            <tr><td>分類マスタ</td><td>分類の追加・修正</td></tr>
+            <tr><td>設定</td><td>アプリ名（B4セル=英語タイトル）</td></tr>
+          </table>
+          <div class="alert warn"><span class="alert-icon">⚠️</span>保存時は必ず <strong>xlsx形式</strong> で保存してください。「名前を付けて保存」→「xlsx」を選択。</div>
+          <ul class="checklist">
+            <li><input type="checkbox" onchange="updateProgress(this)"><label>xlsx形式で保存できた</label></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num">2</div>
+          <div class="step-label">管理画面でHTMLを生成する</div>
+          <div class="step-arrow">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="code-block">
+            <div class="code-label">ターミナル <button class="copy-btn" onclick="copyCode(this, 'open ~/Documents/glossary-app/admin/admin.html')">コピー</button></div>
+            <pre><span class="cmd">open</span> ~/Documents/glossary-app/admin/admin.html</pre>
+          </div>
+          <div class="step-desc">管理画面で以下の順に操作してください：</div>
+          <ul class="checklist">
+            <li><input type="checkbox" onchange="updateProgress(this)"><label>「ファイルを選択」でglossar.xlsxを選択した</label></li>
+            <li><input type="checkbox" onchange="updateProgress(this)"><label>データが正しく読み込まれた（用語数・分類数を確認）</label></li>
+            <li><input type="checkbox" onchange="updateProgress(this)"><label>必要に応じてAI翻訳を実行した</label></li>
+            <li><input type="checkbox" onchange="updateProgress(this)"><label>「HTMLを生成」→「ダウンロード」をクリックした</label></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num">3</div>
+          <div class="step-label">docs/フォルダに配置してGitHubにPushする</div>
+          <div class="step-arrow">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="step-desc">以下をまとめてコピーして実行してください。</div>
+          <div class="code-block">
+            <div class="code-label">ターミナル（まとめてコピー） <button class="copy-btn" onclick="copyCode(this, 'cp ~/Downloads/index.html ~/Documents/glossary-app/docs/index.html && cd ~/Documents/glossary-app && git add . && git commit -m \"用語集を更新\" && git push origin main')">コピー</button></div>
+            <pre><span class="cmd">cp</span> ~/Downloads/index.html ~/Documents/glossary-app/docs/index.html <span class="flag">&&</span> \
+<span class="cmd">cd</span> ~/Documents/glossary-app <span class="flag">&&</span> \
+<span class="cmd">git add</span> <span class="flag">.</span> <span class="flag">&&</span> \
+<span class="cmd">git commit</span> <span class="flag">-m</span> <span class="path">"用語集を更新"</span> <span class="flag">&&</span> \
+<span class="cmd">git push</span> origin main</pre>
+          </div>
+          <ul class="checklist">
+            <li><input type="checkbox" onchange="updateProgress(this)"><label>「main branch」にpushされたと表示された</label></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num">4</div>
+          <div class="step-label">ローカルで確認する</div>
+          <div class="step-arrow">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="code-block">
+            <div class="code-label">ターミナル <button class="copy-btn" onclick="copyCode(this, 'open ~/Documents/glossary-app/docs/index.html')">コピー</button></div>
+            <pre><span class="cmd">open</span> ~/Documents/glossary-app/docs/index.html</pre>
+          </div>
+          <ul class="checklist">
+            <li><input type="checkbox" onchange="updateProgress(this)"><label>更新内容がWebサイトに反映されていた</label></li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- セクション3: 画像の追加 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number yellow">3</div>
+      <div>
+        <div class="section-title">画像・写真を追加する</div>
+        <div class="section-subtitle">用語の詳細説明に図や写真を添付する</div>
+      </div>
+    </div>
+
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num">1</div>
+          <div class="step-label">画像ファイル名のルールを確認する</div>
+          <div class="step-arrow">▼</div>
+        </div>
+        <div class="step-body">
+          <table>
+            <tr><th>形式</th><td><code>{用語ID}_{連番}.{拡張子}</code></td></tr>
+            <tr><th>例</th><td><code>001_1.jpg</code>（用語001の1枚目）</td></tr>
+            <tr><th>連番</th><td>1〜5（1用語につき最大5枚）</td></tr>
+            <tr><th>拡張子</th><td>jpg / jpeg / png / gif</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num">2</div>
+          <div class="step-label">imagesフォルダに画像をコピーする</div>
+          <div class="step-arrow">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="step-desc">Finderで以下のフォルダに画像ファイルをコピーします。</div>
+          <div class="code-block">
+            <div class="code-label">保存場所</div>
+            <pre><span class="path">Documents/glossary-app/images/</span></pre>
+          </div>
+          <div class="code-block">
+            <div class="code-label">ターミナル（Finderで開く） <button class="copy-btn" onclick="copyCode(this, 'open ~/Documents/glossary-app/images/')">コピー</button></div>
+            <pre><span class="cmd">open</span> ~/Documents/glossary-app/images/</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num">3</div>
+          <div class="step-label">docs/imagesにもコピーしてPushする</div>
+          <div class="step-arrow">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="code-block">
+            <div class="code-label">ターミナル（まとめてコピー） <button class="copy-btn" onclick="copyCode(this, 'cp ~/Documents/glossary-app/images/* ~/Documents/glossary-app/docs/images/ && cd ~/Documents/glossary-app && git add . && git commit -m \"画像を追加\" && git push origin main')">コピー</button></div>
+            <pre><span class="cmd">cp</span> ~/Documents/glossary-app/images/* \
+    ~/Documents/glossary-app/docs/images/ <span class="flag">&&</span> \
+<span class="cmd">cd</span> ~/Documents/glossary-app <span class="flag">&&</span> \
+<span class="cmd">git add</span> <span class="flag">.</span> <span class="flag">&&</span> \
+<span class="cmd">git commit</span> <span class="flag">-m</span> <span class="path">"画像を追加"</span> <span class="flag">&&</span> \
+<span class="cmd">git push</span> origin main</pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- セクション4: トラブルシューティング -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number red">4</div>
+      <div>
+        <div class="section-title">トラブルシューティング</div>
+        <div class="section-subtitle">うまくいかない場合の対処法</div>
+      </div>
+    </div>
+
+    <div class="faq">
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)"> &nbsp;「command not found: code」と表示された</div>
+        <div class="faq-a">
+          VS Codeのcodeコマンドが設定されていません。<br>
+          VS Codeを開いて <strong>Cmd+Shift+P</strong> →「Shell コマンド: PATH内に 'code' コマンドをインストール」を実行してください。その後ターミナルを新しく開き直してから再実行してください。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)"> &nbsp;「quote>」と表示されて止まった</div>
+        <div class="faq-a">
+          クォート記号（' や "）が途中で入力された状態です。<br>
+          キーボードで <strong>Ctrl + C</strong> を押してキャンセルし、もう一度コマンドをコピーして実行してください。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)"> &nbsp;Excelが読み込めない</div>
+        <div class="faq-a">
+          ファイルがxlsx形式で保存されているか確認してください。<br>
+          Libre Officeで「名前を付けて保存」→ファイル形式を「xlsx」に選択して保存し直してください。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)"> &nbsp;翻訳ボタンが動作しない</div>
+        <div class="faq-a">
+          APIキーが正しく入力されているか確認してください。<br>
+          APIキーは <strong>sk-ant-api03-</strong> で始まる文字列です。<br>
+          <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent)">console.anthropic.com</a> で新しいキーを作成してください。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)"> &nbsp;GitHubにPushできない</div>
+        <div class="faq-a">
+          以下を実行してGitの設定を確認してください：
+          <div class="code-block" style="margin-top:8px">
+            <div class="code-label">ターミナル</div>
+            <pre><span class="cmd">git config</span> <span class="flag">--global</span> user.name <span class="path">"あなたの名前"</span>
+<span class="cmd">git config</span> <span class="flag">--global</span> user.email <span class="path">"メールアドレス"</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)"> &nbsp;node_modulesのエラーが出る</div>
+        <div class="faq-a">
+          以下を実行して必要なツールを再インストールしてください：
+          <div class="code-block" style="margin-top:8px">
+            <div class="code-label">ターミナル</div>
+            <pre><span class="cmd">cd</span> ~/Documents/glossary-app
+<span class="cmd">npm install</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)"> &nbsp;画像が表示されない</div>
+        <div class="faq-a">
+          以下を確認してください：<br>
+          ① ファイル名のルール（例: 001_1.jpg）になっているか<br>
+          ② <code>images/</code> と <code>docs/images/</code> の両方にコピーされているか<br>
+          ③ ExcelのM列に正しいファイル名が入力されているか
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // ステップの開閉
+  function toggleStep(header) {
+    const step = header.parentElement;
+    step.classList.toggle('open');
+  }
+
+  // FAQの開閉
+  function toggleFaq(qEl) {
+    const item = qEl.parentElement;
+    item.classList.toggle('open');
+  }
+
+  // コードコピー
+  function copyCode(btn, text) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '✓ コピー済み';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'コピー';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  // 進捗管理
+  function updateProgress(checkbox) {
+    const li = checkbox.parentElement;
+    if (checkbox.checked) {
+      li.classList.add('checked');
+    } else {
+      li.classList.remove('checked');
+    }
+    saveProgress();
+    recalcProgress();
+  }
+
+  function recalcProgress() {
+    const all = document.querySelectorAll('.checklist input[type="checkbox"]');
+    const checked = document.querySelectorAll('.checklist input[type="checkbox"]:checked');
+    const total = all.length;
+    const done = checked.length;
+    document.getElementById('progress-count').textContent = done;
+    document.getElementById('progress-total').textContent = total;
+    document.getElementById('progress-fill').style.width = total > 0 ? (done / total * 100) + '%' : '0%';
+  }
+
+  function saveProgress() {
+    const checkboxes = document.querySelectorAll('.checklist input[type="checkbox"]');
+    const state = Array.from(checkboxes).map(cb => cb.checked);
+    localStorage.setItem('glossary-guide-progress', JSON.stringify(state));
+  }
+
+  function loadProgress() {
+    const saved = localStorage.getItem('glossary-guide-progress');
+    if (!saved) return;
+    const state = JSON.parse(saved);
+    const checkboxes = document.querySelectorAll('.checklist input[type="checkbox"]');
+    checkboxes.forEach((cb, i) => {
+      if (state[i]) {
+        cb.checked = true;
+        cb.parentElement.classList.add('checked');
+      }
+    });
+    recalcProgress();
+  }
+
+  function resetProgress() {
+    if (!confirm('進捗をリセットしますか？')) return;
+    localStorage.removeItem('glossary-guide-progress');
+    document.querySelectorAll('.checklist input[type="checkbox"]').forEach(cb => {
+      cb.checked = false;
+      cb.parentElement.classList.remove('checked');
+    });
+    recalcProgress();
+  }
+
+  // 初期化
+  loadProgress();
+  recalcProgress();
+</script>
+
+</body>
+</html>

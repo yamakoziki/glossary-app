@@ -30,12 +30,13 @@ cat package.json
    - Categories sheet: category master with translations
    - Settings sheet: app settings (supported languages, etc.)
 
-2. **Admin tool** (`admin/admin.html`): A single-file, self-contained 5-step wizard:
+2. **Admin tool** (`admin/admin.html`): A single-file, self-contained 6-step wizard:
    - Step 1: Load `data/glossary.xlsx` via SheetJS (from CDN)
    - Step 2: Review/edit terms; run AI translation via Anthropic API (`https://api.anthropic.com/v1/messages`) — API key stored in `localStorage`
    - Step 3: Validation
    - Step 4: Generate & preview HTML
    - Step 5: Download `index.html` → place in `docs/`
+   - Step 6: Export `index.html` back to `glossary.xlsx` (round-trip recovery from embedded JSON)
 
 3. **Output**: `docs/index.html` — a fully self-contained viewer with all glossary data embedded as JSON. No server required. Images live in `docs/images/`.
 
@@ -51,9 +52,9 @@ cat package.json
 
 ### Key Implementation Notes
 
-- All logic is vanilla JS inside `admin/admin.html` (~1474 lines). There is no separate JS/CSS file.
-- Translation uses `claude-sonnet-4-20250514` via `callAnthropicApi()` (line 549). Calls are sequential with a 1-second delay between requests for rate limiting.
-- The generated `docs/index.html` embeds the viewer UI inline and all glossary data as JSON — produced by `buildIndexHtml()` (line 992). Images are embedded as base64 `dataUrl` strings. Maximum 5 images per term.
+- All logic is vanilla JS inside `admin/admin.html` (~1755 lines). There is no separate JS/CSS file.
+- Translation uses `claude-sonnet-4-20250514` via `callAnthropicApi()` (line 573). Calls are sequential with a 1-second delay between requests for rate limiting.
+- The generated `docs/index.html` embeds the viewer UI inline and all glossary data as JSON — produced by `buildIndexHtml()` (line 1016). Images are embedded as base64 `dataUrl` strings. Maximum 5 images per term.
 - `termImages` is an in-memory object (`{termIdx: [{filename, dataUrl}]}`) populated during Step 2. Images are not persisted across page reloads.
 - SheetJS is loaded from `https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js` in admin.html. The `xlsx` npm package in `node_modules/` is not used at runtime.
 - `images/` at the repo root is a backup of source images (not served); `docs/images/` contains the published copies.

@@ -173,6 +173,8 @@
         <option value="ARA">ARA: アラビア語（العربية）</option>
         <option value="POR">POR: ポルトガル語（Português）</option>
         <option value="CHN">CHN: 中国語（中文）</option>
+        <option value="VIE">VIE: ベトナム語（Tiếng Việt）</option>
+        <option value="LAO">LAO: ラオス語（ພາສາລາວ）</option>
       </select>
       <span style="font-size:0.85rem;color:var(--muted);">index.htmlの3番目のボタンになります</span>
     </div>
@@ -409,21 +411,17 @@ function parseTermSheet(sheet) {
     readingJa:String(r[3] || '').trim(),
     summaryJa:String(r[4] || '').trim(),
     detailJa: String(r[5] || '').trim(),
-    nameFr:   String(r[6] || '').trim(),
-    summaryFr:String(r[7] || '').trim(),
-    detailFr: String(r[8] || '').trim(),
-    nameEn:   String(r[9] || '').trim(),
-    summaryEn:String(r[10] || '').trim(),
-    detailEn: String(r[11] || '').trim(),
-    image:    String(r[12] || '').trim(),
-    captionJa:String(r[13] || '').trim(),
-    captionFr:String(r[14] || '').trim(),
-    captionEn:String(r[15] || '').trim(),
-    published: String(r[16] || '').trim(),
-    name3:    String(r[17] || '').trim(),
-    summary3: String(r[18] || '').trim(),
-    detail3:  String(r[19] || '').trim(),
-    caption3: String(r[20] || '').trim(),
+    nameEn:   String(r[6] || '').trim(),
+    summaryEn:String(r[7] || '').trim(),
+    detailEn: String(r[8] || '').trim(),
+    image:    String(r[9] || '').trim(),
+    captionJa:String(r[10] || '').trim(),
+    captionEn:String(r[11] || '').trim(),
+    published: String(r[12] || '').trim(),
+    name3:    String(r[13] || '').trim(),
+    summary3: String(r[14] || '').trim(),
+    detail3:  String(r[15] || '').trim(),
+    caption3: String(r[16] || '').trim(),
   })).filter(r => r.id !== '' || r.nameJa !== '');
 }
 
@@ -435,10 +433,9 @@ function parseCatSheet(sheet) {
     code:   String(r[0] || '').trim(),
     nameJa: String(r[1] || '').trim(),
     reading:String(r[2] || '').trim(),
-    nameFr: String(r[3] || '').trim(),
-    nameEn: String(r[4] || '').trim(),
-    order:  Number(r[5]) || 0,
-    name3:  String(r[6] || '').trim(),
+    nameEn: String(r[3] || '').trim(),
+    order:  Number(r[4]) || 0,
+    name3:  String(r[5] || '').trim(),
   })).filter(r => r.code !== '');
 }
 
@@ -559,7 +556,9 @@ function getLang3Name() {
 }
 function initLang3Select() {
   const sel = document.getElementById('lang3-select');
-  if (sel) sel.value = lang3Code;
+  if (!sel) return;
+  sel.innerHTML = LANG3_OPTIONS.map(o => `<option value="${o.code}">${o.label}</option>`).join('');
+  sel.value = lang3Code;
 }
 
 function onApiKeyInput() {
@@ -1672,10 +1671,9 @@ async function exportToExcel() {
     const termHeaders = [
       'ID', '分類コード', '用語(日本語)', '読み',
       '概要(日本語)', '詳細(日本語)',
-      '用語(FRE)', '概要(FRE)', '詳細(FRE)',
       '用語(英語)', '概要(英語)', '詳細(英語)',
       '画像',
-      'キャプション(日本語)', 'キャプション(FRE)', 'キャプション(英語)',
+      'キャプション(日本語)', 'キャプション(英語)',
       '公開',
       '用語(第3言語)', '概要(第3言語)', '詳細(第3言語)', 'キャプション(第3言語)'
     ];
@@ -1688,15 +1686,11 @@ async function exportToExcel() {
         t.readingJa ?? '',
         t.summaryJa ?? '',
         t.detailJa  ?? '',
-        t.nameFr    ?? '',
-        t.summaryFr ?? '',
-        t.detailFr  ?? '',
         t.nameEn    ?? '',
         t.summaryEn ?? '',
         t.detailEn  ?? '',
         t.image     || (t.images && t.images[0] ? t.images[0].filename : ''),
         t.captionJa ?? '',
-        t.captionFr ?? '',
         t.captionEn ?? '',
         t.published !== undefined ? t.published : '1',
         t.name3     ?? '',
@@ -1708,14 +1702,13 @@ async function exportToExcel() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(termRows), '用語マスタ');
 
     // ── 分類マスタ ──────────────────────────────
-    const catHeaders = ['分類コード', '分類名(日本語)', '読み', '分類名(FRE)', '分類名(英語)', '表示順', '分類名(第3言語)'];
+    const catHeaders = ['分類コード', '分類名(日本語)', '読み', '分類名(英語)', '表示順', '分類名(第3言語)'];
     const catRows = [
       catHeaders,
       ...exportedCats.map(c => [
         c.code    ?? '',
         c.nameJa  ?? '',
         c.reading ?? '',
-        c.nameFr  ?? '',
         c.nameEn  ?? '',
         c.order   ?? 0,
         c.name3   ?? '',

@@ -13,6 +13,7 @@ No build step is needed. Open HTML files directly in a browser:
 ```bash
 open admin/admin.html     # Admin/authoring tool
 open docs/index.html      # Published glossary viewer
+open install-guide.html   # End-user setup guide (Japanese)
 ```
 
 To inspect dependencies (only `xlsx` is used, and only via CDN in admin.html):
@@ -46,13 +47,14 @@ cat package.json
 
 **分類マスタ**: code(0), nameJa(1), reading(2), nameFr(3), nameEn(4), order(5), name3(6)
 
-**設定**: key(0), value(1) — `サイトタイトル` sets the viewer page title.
+**設定**: key(0), value(1) — `サイトタイトル` sets the viewer page title (Japanese). Cell B4 (row index 3) is additionally read as `_titleEn` (English title) and takes priority over `サイトタイトル` in the generated HTML `<title>`.
 
 `published` field: `1`, `true`, or `公開` = published; **empty string also defaults to published**.
 
 ### Key Implementation Notes
 
 - All logic is vanilla JS inside `admin/admin.html` (~1755 lines). There is no separate JS/CSS file.
+- **Do not edit `docs/index.html` directly** — it is overwritten each time Step 5 runs. All viewer UI/CSS changes must be made inside `buildIndexHtml()` (line 1016) in admin.html, then regenerated.
 - Translation uses `claude-sonnet-4-20250514` via `callAnthropicApi()` (line 573). Calls are sequential with a 1-second delay between requests for rate limiting. Translation targets English and a user-selectable 3rd language (`lang3Code`, persisted to `localStorage`). Available 3rd-language options are defined in `LANG3_OPTIONS` (line 295).
 - The generated `docs/index.html` embeds the viewer UI inline and all glossary data as JS variables (`const TERMS = [...]` and `const CATEGORIES = [...]`) — produced by `buildIndexHtml()` (line 1016). Images are embedded as base64 `dataUrl` strings. Maximum 5 images per term.
 - `termImages` is an in-memory object (`{termIdx: [{filename, dataUrl}]}`) populated during Step 2. Images are not persisted across page reloads.
